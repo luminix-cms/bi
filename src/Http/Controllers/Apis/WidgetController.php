@@ -2,6 +2,7 @@
 
 namespace Luminix\Bi\Http\Controllers\Apis;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Luminix\Bi\Dashboard;
 use Luminix\Bi\Support\BiRequest;
@@ -11,12 +12,21 @@ class WidgetController extends BaseController
 {
     public function getWidget(Dashboard $dashboard, $widgetKey, BiRequest $request)
     {
-        $widget = $dashboard->findWidgetOrFail($widgetKey);
+        if (config('luminix.bi.debug', false)) {
+            DB::enableQueryLog();
+        }
 
-        return [
+        $widget = $dashboard->findWidgetOrFail($widgetKey);
+        $response = [
             'status' => 200,
             'data'   => $widget->data($dashboard, $request)
         ];
+
+        if (config('luminix.bi.debug', false)) {
+            $response['debug'] = DB::getQueryLog();
+        }
+
+        return $response;
     }
 
     public function download(Dashboard $dashboard, $widgetKey, BiRequest $request)

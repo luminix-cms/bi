@@ -26,7 +26,7 @@ abstract class BaseWidget implements \JsonSerializable, Widget
         };
     }
 
-    public static function create($key, $name): Widget
+    public static function create($key, $name): static
     {
         return new static($key, $name);
     }
@@ -38,7 +38,7 @@ abstract class BaseWidget implements \JsonSerializable, Widget
         return $this;
     }
 
-    public function scope(Closure $scope): Widget
+    public function scope(Closure $scope): static
     {
         $this->scope = $scope;
 

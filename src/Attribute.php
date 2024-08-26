@@ -19,19 +19,19 @@ class Attribute
         $this->column = $key;
     }
 
-    public static function create(string $key, string $name): self
+    public static function create(string $key, string $name): static
     {
         return new static($key, $name);
     }
 
-    public function column(string $column): self
+    public function column(string $column): static
     {
         $this->column = $column;
 
         return $this;
     }
 
-    public function color($color): self
+    public function color($color): static
     {
         $this->color = $color;
 
