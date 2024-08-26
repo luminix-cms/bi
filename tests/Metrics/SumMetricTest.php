@@ -14,6 +14,6 @@ class SumMetricTest extends AbstractMetricTest
 
     protected function getQuery(): string
     {
-        return 'select SUM(column) as `sum` from `foo`';
+        return 'select SUM(column) as `sum` from "foo"';
     }
 }

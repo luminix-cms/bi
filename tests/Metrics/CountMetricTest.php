@@ -14,6 +14,6 @@ class CountMetricTest extends AbstractMetricTest
 
     protected function getQuery(): string
     {
-        return 'select COUNT(*) as `count` from `foo`';
+        return 'select COUNT(*) as `count` from "foo"';
     }
 }

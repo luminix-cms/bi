@@ -14,6 +14,6 @@ class BelongsToDimensionTest extends AbstractDimensionTest
 
     protected function getQuery(): string
     {
-        return 'select `bar_id` from `foo` group by `bar_id`';
+        return 'select "bar_id" from "foo" group by "bar_id"';
     }
 }

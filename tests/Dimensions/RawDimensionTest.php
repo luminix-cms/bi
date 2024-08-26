@@ -14,6 +14,6 @@ class RawDimensionTest extends AbstractDimensionTest
 
     protected function getQuery(): string
     {
-        return 'select CONCAT(firstname, \' \', lastname) as `dimension` from `foo` group by `dimension`';
+        return 'select CONCAT(firstname, \' \', lastname) as `dimension` from "foo" group by "dimension"';
     }
 }

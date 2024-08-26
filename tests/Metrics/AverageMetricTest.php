@@ -14,6 +14,6 @@ class AverageMetricTest extends AbstractMetricTest
 
     protected function getQuery(): string
     {
-        return 'select AVG(column) as `average` from `foo`';
+        return 'select AVG(column) as `average` from "foo"';
     }
 }

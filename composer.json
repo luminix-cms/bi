@@ -2,6 +2,9 @@
     "name": "luminix/bi",
     "description": "The Luminix extension to create beautiful dashboards with Laravel",
     "license": "MIT",
+    "scripts": {
+        "test": "@php vendor/bin/testbench package:test"
+    },
     "authors": [
         {
             "name": "Alberto Bottarini",

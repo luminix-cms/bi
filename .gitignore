@@ -6,8 +6,7 @@ composer.phar
 composer.lock
 .DS_Store
 Thumbs.db
-phpunit.xml
 /coverage
 yarn-error.log
-.phpunit.result.cache
+.phpunit.cache
 *.code-workspace

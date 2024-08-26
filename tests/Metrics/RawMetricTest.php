@@ -14,6 +14,6 @@ class RawMetricTest extends AbstractMetricTest
 
     protected function getQuery(): string
     {
-        return 'select SUM(column) / 10 as `raw` from `foo`';
+        return 'select SUM(column) / 10 as `raw` from "foo"';
     }
 }

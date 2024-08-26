@@ -14,6 +14,6 @@ class StringDimensionTest extends AbstractDimensionTest
 
     protected function getQuery(): string
     {
-        return 'select `column` as `dimension` from `foo` group by `dimension`';
+        return 'select "column" as "dimension" from "foo" group by "dimension"';
     }
 }
