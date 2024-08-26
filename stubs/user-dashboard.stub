@@ -3,10 +3,10 @@
 namespace App\Bi\Dashboards;
 
 use App\Models\User;
-use LaravelBi\LaravelBi\Dashboard;
-use LaravelBi\LaravelBi\Widgets\BigNumber;
-use LaravelBi\LaravelBi\Filters\DateFilter;
-use LaravelBi\LaravelBi\Metrics\CountMetric;
+use Luminix\Bi\Dashboard;
+use Luminix\Bi\Widgets\BigNumber;
+use Luminix\Bi\Filters\DateFilter;
+use Luminix\Bi\Metrics\CountMetric;
 
 class UserDashboard extends Dashboard
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Widgets;
+namespace Luminix\Bi\Widgets;
 
 class PartitionPie extends BaseWidget
 {

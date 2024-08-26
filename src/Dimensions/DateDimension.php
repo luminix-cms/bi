@@ -1,10 +1,10 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Dimensions;
+namespace Luminix\Bi\Dimensions;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
-use LaravelBi\LaravelBi\Widgets\Widget;
+use Luminix\Bi\Widgets\Widget;
 use Illuminate\Database\Eloquent\Builder;
 
 class DateDimension extends BaseDimension

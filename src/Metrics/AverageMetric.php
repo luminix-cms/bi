@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Metrics;
+namespace Luminix\Bi\Metrics;
 
 use DB;
-use LaravelBi\LaravelBi\Widgets\Widget;
+use Luminix\Bi\Widgets\Widget;
 use Illuminate\Database\Eloquent\Builder;
 
 class AverageMetric extends BaseMetric

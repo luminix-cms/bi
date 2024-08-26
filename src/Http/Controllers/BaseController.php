@@ -1,8 +1,8 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Http\Controllers;
+namespace Luminix\Bi\Http\Controllers;
 
-use LaravelBi\LaravelBi\DashboardResolver;
+use Luminix\Bi\DashboardResolver;
 
 abstract class BaseController
 {

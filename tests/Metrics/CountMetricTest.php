@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Tests\Metrics;
+namespace Luminix\Bi\Tests\Metrics;
 
-use LaravelBi\LaravelBi\Metrics\Metric;
-use LaravelBi\LaravelBi\Metrics\CountMetric;
+use Luminix\Bi\Metrics\Metric;
+use Luminix\Bi\Metrics\CountMetric;
 
 class CountMetricTest extends AbstractMetricTest
 {

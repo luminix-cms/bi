@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Widgets\Traits;
+namespace Luminix\Bi\Widgets\Traits;
 
-use LaravelBi\LaravelBi\Metrics\Metric;
-use LaravelBi\LaravelBi\Support\AttributeCollection;
+use Luminix\Bi\Metrics\Metric;
+use Luminix\Bi\Support\AttributeCollection;
 
 trait SingleMetric
 {

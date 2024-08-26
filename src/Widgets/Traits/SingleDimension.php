@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Widgets\Traits;
+namespace Luminix\Bi\Widgets\Traits;
 
-use LaravelBi\LaravelBi\Dimensions\Dimension;
-use LaravelBi\LaravelBi\Support\AttributeCollection;
+use Luminix\Bi\Dimensions\Dimension;
+use Luminix\Bi\Support\AttributeCollection;
 
 trait SingleDimension
 {

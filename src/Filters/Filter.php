@@ -1,6 +1,6 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Filters;
+namespace Luminix\Bi\Filters;
 
 interface Filter
 {

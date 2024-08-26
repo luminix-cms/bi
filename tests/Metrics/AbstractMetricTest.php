@@ -1,12 +1,12 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Tests\Metrics;
+namespace Luminix\Bi\Tests\Metrics;
 
 use Orchestra\Testbench\TestCase;
-use LaravelBi\LaravelBi\Metrics\Metric;
+use Luminix\Bi\Metrics\Metric;
 use Illuminate\Database\Eloquent\Builder;
-use LaravelBi\LaravelBi\Widgets\BigNumber;
-use LaravelBi\LaravelBi\Tests\Models\FooModel;
+use Luminix\Bi\Widgets\BigNumber;
+use Luminix\Bi\Tests\Models\FooModel;
 
 abstract class AbstractMetricTest extends TestCase
 {

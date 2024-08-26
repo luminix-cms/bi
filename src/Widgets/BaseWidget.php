@@ -1,12 +1,12 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Widgets;
+namespace Luminix\Bi\Widgets;
 
 use Closure;
 use stdClass;
-use LaravelBi\LaravelBi\Dashboard;
+use Luminix\Bi\Dashboard;
 use Illuminate\Database\Eloquent\Builder;
-use LaravelBi\LaravelBi\Support\BiRequest;
+use Luminix\Bi\Support\BiRequest;
 
 abstract class BaseWidget implements \JsonSerializable, Widget
 {

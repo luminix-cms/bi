@@ -1,6 +1,6 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Tests\Models;
+namespace Luminix\Bi\Tests\Models;
 
 use Illuminate\Database\Eloquent\Model;
 

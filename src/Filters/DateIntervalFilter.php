@@ -1,10 +1,10 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Filters;
+namespace Luminix\Bi\Filters;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use LaravelBi\LaravelBi\Support\BiRequest;
+use Luminix\Bi\Support\BiRequest;
 
 class DateIntervalFilter extends BaseFilter
 {

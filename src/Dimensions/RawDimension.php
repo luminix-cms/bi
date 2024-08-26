@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Dimensions;
+namespace Luminix\Bi\Dimensions;
 
 use DB;
-use LaravelBi\LaravelBi\Widgets\Widget;
+use Luminix\Bi\Widgets\Widget;
 use Illuminate\Database\Eloquent\Builder;
 
 class RawDimension extends BaseDimension

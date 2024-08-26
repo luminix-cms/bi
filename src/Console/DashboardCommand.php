@@ -1,6 +1,6 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Console;
+namespace Luminix\Bi\Console;
 
 use Illuminate\Support\Str;
 use Illuminate\Console\GeneratorCommand;

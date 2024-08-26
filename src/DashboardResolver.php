@@ -1,6 +1,6 @@
 <?php
 
-namespace LaravelBi\LaravelBi;
+namespace Luminix\Bi;
 
 use App;
 use ReflectionClass;

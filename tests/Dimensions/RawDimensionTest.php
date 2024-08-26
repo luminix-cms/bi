@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Tests\Dimensions;
+namespace Luminix\Bi\Tests\Dimensions;
 
-use LaravelBi\LaravelBi\Dimensions\Dimension;
-use LaravelBi\LaravelBi\Dimensions\RawDimension;
+use Luminix\Bi\Dimensions\Dimension;
+use Luminix\Bi\Dimensions\RawDimension;
 
 class RawDimensionTest extends AbstractDimensionTest
 {

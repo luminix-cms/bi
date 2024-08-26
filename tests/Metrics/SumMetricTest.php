@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Tests\Metrics;
+namespace Luminix\Bi\Tests\Metrics;
 
-use LaravelBi\LaravelBi\Metrics\Metric;
-use LaravelBi\LaravelBi\Metrics\SumMetric;
+use Luminix\Bi\Metrics\Metric;
+use Luminix\Bi\Metrics\SumMetric;
 
 class SumMetricTest extends AbstractMetricTest
 {

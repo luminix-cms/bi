@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Filters;
+namespace Luminix\Bi\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
-use LaravelBi\LaravelBi\Support\BiRequest;
+use Luminix\Bi\Support\BiRequest;
 
 class NumberFilter extends BaseFilter
 {

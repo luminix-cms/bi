@@ -1,6 +1,6 @@
 <?php
 
-namespace LaravelBi\LaravelBi;
+namespace Luminix\Bi;
 
 use App;
 use Route;
@@ -45,7 +45,7 @@ class BiServiceProvider extends ServiceProvider
     protected function registerRoutes()
     {
         Route::group([
-            'namespace'  => 'LaravelBi\LaravelBi\Http\Controllers',
+            'namespace'  => 'Luminix\Bi\Http\Controllers',
             'as'         => 'bi',
             'prefix'     => Config::get('bi.path', 'bi'),
             'middleware' => 'web'
@@ -53,7 +53,7 @@ class BiServiceProvider extends ServiceProvider
             $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
         });
         Route::group([
-            'namespace'  => 'LaravelBi\LaravelBi\Http\Controllers\Apis',
+            'namespace'  => 'Luminix\Bi\Http\Controllers\Apis',
             'as'         => 'bi.api',
             'prefix'     => Config::get('bi.path', 'bi') . '-apis',
             'middleware' => 'web'

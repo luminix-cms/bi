@@ -1,10 +1,10 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Filters;
+namespace Luminix\Bi\Filters;
 
-use LaravelBi\LaravelBi\Dashboard;
+use Luminix\Bi\Dashboard;
 use Illuminate\Database\Eloquent\Builder;
-use LaravelBi\LaravelBi\Support\BiRequest;
+use Luminix\Bi\Support\BiRequest;
 
 abstract class BaseFilter implements Filter
 {

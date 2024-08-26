@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Http\Controllers;
+namespace Luminix\Bi\Http\Controllers;
 
 use Config;
-use LaravelBi\LaravelBi\Support\BiRequest;
+use Luminix\Bi\Support\BiRequest;
 
 class HomepageController extends BaseController
 {

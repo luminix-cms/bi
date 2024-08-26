@@ -1,6 +1,6 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Support;
+namespace Luminix\Bi\Support;
 
 use Illuminate\Http\Request;
 

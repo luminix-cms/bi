@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Tests\Dimensions;
+namespace Luminix\Bi\Tests\Dimensions;
 
-use LaravelBi\LaravelBi\Dimensions\Dimension;
-use LaravelBi\LaravelBi\Dimensions\DayDimension;
+use Luminix\Bi\Dimensions\Dimension;
+use Luminix\Bi\Dimensions\DayDimension;
 
 class DayDimensionTest extends AbstractDimensionTest
 {

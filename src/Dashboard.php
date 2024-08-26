@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi;
+namespace Luminix\Bi;
 
-use LaravelBi\LaravelBi\Filters\Filter;
-use LaravelBi\LaravelBi\Widgets\Widget;
+use Luminix\Bi\Filters\Filter;
+use Luminix\Bi\Widgets\Widget;
 
 abstract class Dashboard implements \JsonSerializable
 {

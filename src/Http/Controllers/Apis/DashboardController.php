@@ -1,10 +1,10 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Http\Controllers\Apis;
+namespace Luminix\Bi\Http\Controllers\Apis;
 
-use LaravelBi\LaravelBi\Dashboard;
-use LaravelBi\LaravelBi\Support\BiRequest;
-use LaravelBi\LaravelBi\Http\Controllers\BaseController;
+use Luminix\Bi\Dashboard;
+use Luminix\Bi\Support\BiRequest;
+use Luminix\Bi\Http\Controllers\BaseController;
 
 class DashboardController extends BaseController
 {

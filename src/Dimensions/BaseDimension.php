@@ -1,8 +1,8 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Dimensions;
+namespace Luminix\Bi\Dimensions;
 
-use LaravelBi\LaravelBi\Attribute;
+use Luminix\Bi\Attribute;
 
 abstract class BaseDimension extends Attribute implements Dimension
 {

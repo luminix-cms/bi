@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Tests\Metrics;
+namespace Luminix\Bi\Tests\Metrics;
 
-use LaravelBi\LaravelBi\Metrics\Metric;
-use LaravelBi\LaravelBi\Metrics\RawMetric;
+use Luminix\Bi\Metrics\Metric;
+use Luminix\Bi\Metrics\RawMetric;
 
 class RawMetricTest extends AbstractMetricTest
 {

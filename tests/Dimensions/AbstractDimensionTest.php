@@ -1,12 +1,12 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Tests\Dimensions;
+namespace Luminix\Bi\Tests\Dimensions;
 
 use Orchestra\Testbench\TestCase;
 use Illuminate\Database\Eloquent\Builder;
-use LaravelBi\LaravelBi\Widgets\BigNumber;
-use LaravelBi\LaravelBi\Dimensions\Dimension;
-use LaravelBi\LaravelBi\Tests\Models\FooModel;
+use Luminix\Bi\Widgets\BigNumber;
+use Luminix\Bi\Dimensions\Dimension;
+use Luminix\Bi\Tests\Models\FooModel;
 
 abstract class AbstractDimensionTest extends TestCase
 {

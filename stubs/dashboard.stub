@@ -2,7 +2,7 @@
 
 namespace DummyNamespace;
 
-use LaravelBi\LaravelBi\Dashboard;
+use Luminix\Bi\Dashboard;
 
 class DummyClass extends Dashboard
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Dimensions;
+namespace Luminix\Bi\Dimensions;
 
 class MonthDimension extends DateDimension
 {

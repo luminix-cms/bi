@@ -1,9 +1,9 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Widgets;
+namespace Luminix\Bi\Widgets;
 
-use LaravelBi\LaravelBi\Dashboard;
-use LaravelBi\LaravelBi\Support\BiRequest;
+use Luminix\Bi\Dashboard;
+use Luminix\Bi\Support\BiRequest;
 
 class BigNumber extends BaseWidget
 {

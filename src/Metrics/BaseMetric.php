@@ -1,8 +1,8 @@
 <?php
 
-namespace LaravelBi\LaravelBi\Metrics;
+namespace Luminix\Bi\Metrics;
 
-use LaravelBi\LaravelBi\Attribute;
+use Luminix\Bi\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 abstract class BaseMetric extends Attribute implements Metric
