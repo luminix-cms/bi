@@ -46,4 +46,10 @@ abstract class Dashboard implements \JsonSerializable
             'filters' => $this->filters()
         ];
     }
+
+    public function viewable(): bool
+    {
+        return true;
+    }
+
 }

@@ -16,10 +16,16 @@ class BiServiceProvider extends ServiceProvider
         }
 
         $this->setUpRouteModelBinding();
+        $this->mergeDefaultConfig();
 
         $this->registerViews();
         $this->registerRoutes();
         $this->registerCommands();
+    }
+
+    protected function mergeDefaultConfig()
+    {
+        $this->mergeConfigFrom(__DIR__ . '/../config/bi.php', 'luminix.bi');
     }
 
     protected function registerPublishing()
@@ -29,7 +35,7 @@ class BiServiceProvider extends ServiceProvider
         ], 'bi-provider');
 
         $this->publishes([
-            __DIR__ . '/../config/bi.php' => config_path('bi.php')
+            __DIR__ . '/../config/bi.php' => config_path('luminix/bi.php')
         ], 'bi-config');
 
         $this->publishes([
@@ -44,22 +50,8 @@ class BiServiceProvider extends ServiceProvider
 
     protected function registerRoutes()
     {
-        Route::group([
-            'namespace'  => 'Luminix\Bi\Http\Controllers',
-            'as'         => 'bi',
-            'prefix'     => Config::get('bi.path', 'bi'),
-            'middleware' => 'web'
-        ], function () {
-            $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
-        });
-        Route::group([
-            'namespace'  => 'Luminix\Bi\Http\Controllers\Apis',
-            'as'         => 'bi.api',
-            'prefix'     => Config::get('bi.path', 'bi') . '-apis',
-            'middleware' => 'web'
-        ], function () {
-            $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
-        });
+        $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
+        $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
     }
 
     protected function registerCommands()

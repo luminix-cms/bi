@@ -27,7 +27,9 @@ class DashboardResolver
             if (is_subclass_of($dashboard, Dashboard::class) &&
                 !(new ReflectionClass($dashboard))->isAbstract()) {
                 $dashboardInstance = App::make($dashboard);
-                $this->dashboards->put($dashboardInstance->uriKey, $dashboardInstance);
+                if ($dashboardInstance->viewable()) {
+                    $this->dashboards->put($dashboardInstance->uriKey, $dashboardInstance);
+                }
             }
         }
     }
