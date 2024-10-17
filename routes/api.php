@@ -1,5 +1,8 @@
 <?php
 
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Route;
+
 Route::group([
     'namespace'  => 'Luminix\Bi\Http\Controllers\Apis',
     'as'         => 'bi.api',
