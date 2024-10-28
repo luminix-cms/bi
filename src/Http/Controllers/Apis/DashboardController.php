@@ -16,11 +16,11 @@ class DashboardController extends BaseController
         ];
     }
 
-    public function getWidgets(Dashboard $dashboard, BiRequest $request)
+    public function getWidgets($dashboard, BiRequest $request)
     {
         return [
             'status' => 200,
-            'data'   => $dashboard
+            'data'   => $this->dashboardResolver->find($dashboard) ?? abort(404)
         ];
     }
 }

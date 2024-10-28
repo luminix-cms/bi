@@ -15,12 +15,13 @@ class BiServiceProvider extends ServiceProvider
             $this->registerPublishing();
         }
 
-        $this->setUpRouteModelBinding();
+        //$this->setUpRouteModelBinding();
         $this->mergeDefaultConfig();
 
         $this->registerViews();
         $this->registerRoutes();
         $this->registerCommands();
+        $this->bindResolverToContainer();
     }
 
     protected function mergeDefaultConfig()
@@ -62,10 +63,11 @@ class BiServiceProvider extends ServiceProvider
         ]);
     }
 
-    protected function setUpRouteModelBinding()
+    protected function bindResolverToContainer()
     {
-        Route::bind('dashboard', function ($value) {
-            return App::make(DashboardResolver::class)->find($value) ?? abort(404);
+        $this->app->singleton(DashboardResolver::class, function () {
+            return new DashboardResolver();
         });
     }
+
 }

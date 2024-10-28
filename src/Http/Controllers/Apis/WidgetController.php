@@ -11,11 +11,13 @@ use Luminix\Bi\Http\Controllers\BaseController;
 
 class WidgetController extends BaseController
 {
-    public function getWidget(Dashboard $dashboard, $widgetKey, BiRequest $request)
+    public function getWidget($dashboard, $widgetKey, BiRequest $request)
     {
         if (Config::get('luminix.bi.debug', false)) {
             DB::enableQueryLog();
         }
+
+        $dashboard = $this->dashboardResolver->find($dashboard) ?? abort(404);
 
         $widget = $dashboard->findWidgetOrFail($widgetKey);
         $response = [
@@ -30,8 +32,11 @@ class WidgetController extends BaseController
         return $response;
     }
 
-    public function download(Dashboard $dashboard, $widgetKey, BiRequest $request)
+    public function download($dashboard, $widgetKey, BiRequest $request)
     {
+
+        $dashboard = $this->dashboardResolver->find($dashboard) ?? abort(404);
+
         $widget = $dashboard->findWidgetOrFail($widgetKey);
 
         $data = $widget->data($dashboard, $request);

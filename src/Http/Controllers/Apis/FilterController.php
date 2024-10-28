@@ -8,8 +8,9 @@ use Luminix\Bi\Http\Controllers\BaseController;
 
 class FilterController extends BaseController
 {
-    public function getFilter(Dashboard $dashboard, string $filterKey, BiRequest $request)
+    public function getFilter($dashboard, string $filterKey, BiRequest $request)
     {
+        $dashboard = $this->dashboardResolver->find($dashboard) ?? abort(404);
         $filter = $dashboard->findFilterOrFail($filterKey);
 
         return [
