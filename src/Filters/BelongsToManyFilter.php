@@ -6,7 +6,8 @@ use Luminix\Bi\Dashboard;
 use Illuminate\Database\Eloquent\Builder;
 use Luminix\Bi\Support\BiRequest;
 
-class BelongsToFilter extends BaseFilter
+// users -> tags || UserDashboard
+class BelongsToManyFilter extends BaseFilter
 {
     private $relation;
     private $otherColumn;
@@ -16,7 +17,7 @@ class BelongsToFilter extends BaseFilter
     public function __construct($key, $name)
     {
         parent::__construct($key, $name);
-        $this->relation = $key;
+        $this->relation = $key; // tags
     }
 
     public function relation($relation): self
@@ -28,14 +29,23 @@ class BelongsToFilter extends BaseFilter
 
     public function otherColumn($otherColumn): self
     {
-        $this->otherColumn = $otherColumn;
+        $this->otherColumn = $otherColumn; // tag_name
 
         return $this;
     }
 
     public function apply(Builder $builder, array $filterData, BiRequest $request): Builder
     {
-        return $builder->whereIn($builder->getModel()->{$this->relation}()->getForeignKeyName(), $filterData);
+
+        // users.role_id -> 
+
+        // return $builder->whereIn($builder->getModel()->{$this->relation}()->getForeignKeyName(), $filterData);
+
+        $primaryKey = $builder->getModel()->{$this->relation}()->getRelated()->getKeyName(); // Tag:primary_key
+
+        return $builder->whereHas($this->relation, function ($query) use ($filterData, $primaryKey) {
+            $query->whereIn($primaryKey, $filterData);
+        });
     }
 
     public function extra(Dashboard $dashboard, BiRequest $request): array
