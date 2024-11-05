@@ -17,9 +17,11 @@ class BelongsToFilter extends RelationFilter
 
     public function extra(Dashboard $dashboard, BiRequest $request): array
     {
+        $related = $this->getRelatedModel($dashboard);
         return [
-            'options'     => $this->getRelatedModel($dashboard)->newQuery()->select('id', $this->otherColumn ?? 'name')->get(),
-            'otherColumn' => $this->otherColumn
+            'options'     => $related->newQuery()->select($related->getKeyName(), $this->otherColumn ?? 'name')->get(),
+            'otherColumn' => $this->otherColumn,
+            'primaryKey' => $related->getKeyName(),
         ];
     }
 }

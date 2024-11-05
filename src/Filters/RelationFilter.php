@@ -18,14 +18,14 @@ abstract class RelationFilter extends BaseFilter
         $this->relation = $key;
     }
 
-    public function relation($relation): self
+    public function relation($relation): static
     {
         $this->relation = $relation;
 
         return $this;
     }
 
-    public function otherColumn($otherColumn): self
+    public function otherColumn($otherColumn): static
     {
         $this->otherColumn = $otherColumn;
 
