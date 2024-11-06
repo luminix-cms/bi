@@ -2,63 +2,51 @@
 
 namespace Luminix\Bi\Filters;
 
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Luminix\Bi\Dashboard;
+use Illuminate\Database\Eloquent\Builder;
+use Luminix\Bi\Support\BiRequest;
 
-abstract class RelationFilter extends BaseFilter
+class RelationFilter extends BaseRelationFilter
 {
-
-    protected $relation;
-    protected $otherColumn;
+    public $component = 'belongs-to';
+    public $scope;
+    public $valuedBy;
 
     public function __construct($key, $name)
     {
         parent::__construct($key, $name);
-        $this->relation = $key;
+        $this->scope = function (Builder $builder) {
+            return $builder;
+        };
+        
+        
     }
 
-    public function relation($relation): static
+    public function scope(\Closure $scope): static
     {
-        $this->relation = $relation;
+        $this->scope = $scope;
 
         return $this;
     }
 
-    public function otherColumn($otherColumn): static
+    public function apply(Builder $builder, array $filterData, BiRequest $request): Builder
     {
-        $this->otherColumn = $otherColumn;
+        $primaryKey = $this->getRelatedModel($builder)->getKeyName(); 
 
-        return $this;
+        return $builder->whereHas($this->relation, function ($query) use ($filterData, $primaryKey) {
+            $query = $this->scope->call($this, $query);
+            $query->whereIn($primaryKey, $filterData);
+        });
     }
 
-
-    public function getRelatedModel($origin): Model
+    public function extra(Dashboard $dashboard, BiRequest $request): array
     {
-        if ($origin instanceof Dashboard) {
-            //(new $dashboard->model())->{$this->relation}()->getRelated()
-            $stack = explode('.', $this->relation);
-            $model = new $origin->model();
+        $related = $this->getRelatedModel($dashboard);
 
-            foreach ($stack as $relation) {
-                $model = $model->{$relation}()->getRelated();
-            }
-
-            return $model;
-        }
-
-        if ($origin instanceof Builder) {
-            $stack = explode('.', $this->relation);
-            $model = $origin->getModel();
-
-            foreach ($stack as $relation) {
-                $model = $model->{$relation}()->getRelated();
-            }
-
-            return $model;
-        }
-
-        throw new \Exception('Invalid origin type');
+        return [
+            'options'     => $this->scope->call($this, $related->newQuery())->select($related->getKeyName(), $this->otherColumn ?? 'name')->get(),
+            'otherColumn' => $this->otherColumn,
+            'primaryKey' => $related->getKeyName(),
+        ];
     }
-
 }

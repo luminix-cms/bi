@@ -6,7 +6,12 @@ use Luminix\Bi\Dashboard;
 use Illuminate\Database\Eloquent\Builder;
 use Luminix\Bi\Support\BiRequest;
 
-class BelongsToFilter extends RelationFilter
+/**
+ * 
+ * @deprecated Use `RelationFilter` instead
+ * @package Luminix\Bi\Filters
+ */
+class BelongsToFilter extends BaseRelationFilter
 {
     public $component = 'belongs-to';
 
