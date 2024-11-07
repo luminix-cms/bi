@@ -63,8 +63,13 @@ abstract class BaseRelationFilter extends BaseFilter
             $stack = explode('.', $this->relation);
             $model = new $origin->model();
 
-            foreach ($stack as $relation) {
+            foreach ($stack as $i => $relation) {
                 $model = $model->{$relation}();
+
+                if ($i < count($stack) - 1) {
+                    $model = $model->getRelated();
+                }
+                
             }
 
             return $model;
@@ -74,8 +79,12 @@ abstract class BaseRelationFilter extends BaseFilter
             $stack = explode('.', $this->relation);
             $model = $origin->getModel();
 
-            foreach ($stack as $relation) {
+            foreach ($stack as $i => $relation) {
                 $model = $model->{$relation}();
+                
+                if ($i < count($stack) - 1) {
+                    $model = $model->getRelated();
+                }
             }
 
             return $model;
