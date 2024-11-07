@@ -81,7 +81,10 @@ abstract class BaseWidget implements \JsonSerializable, Widget
 
     protected function getBaseBuilder(Dashboard $dashboard): Builder
     {
-        $builder = $dashboard->model::query();
+        $builder = method_exists($dashboard, 'scope')
+            ? $dashboard->scope($dashboard->model::query())
+            : $dashboard->model::query();
+
         $builder = $this->scope->call($this, $builder);
 
         return $builder;

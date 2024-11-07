@@ -10,7 +10,6 @@ class RelationFilter extends BaseRelationFilter
 {
     public $component = 'belongs-to';
     public $scope;
-    public $valuedBy;
 
     public function __construct($key, $name)
     {
