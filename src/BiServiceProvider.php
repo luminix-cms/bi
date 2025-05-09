@@ -42,6 +42,10 @@ class BiServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../public' => public_path('vendor/bi')
         ], 'bi-assets');
+
+        $this->publishes([
+            __DIR__.'/../database/migrations/database/migrations/01_create_bi_tables.php' => database_path('migrations/' . $timestamp() . '_create_bi_tables.php'),
+        ], 'bi-migrations');
     }
 
     protected function registerViews()

@@ -17,4 +17,7 @@ Route::group([
     Route::get('/{dashboard}/widgets/{widget}/csv', 'WidgetController@download');
     Route::get('/{dashboard}/filters/{filter}', 'FilterController@getFilter');
 
+    // Novas rotas para criação dinâmica de widgets
+    Route::post('/widgets/create', 'DashboardController@createWidget');
+    Route::post('/widgets/load-from-db', 'DashboardController@loadWidgetsFromDb');
 });
