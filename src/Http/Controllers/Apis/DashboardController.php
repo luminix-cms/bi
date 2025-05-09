@@ -11,6 +11,7 @@ use Luminix\Bi\Models\BiFilter;
 use Luminix\Bi\Dashboard;
 use Luminix\Bi\Support\BiRequest;
 use Luminix\Bi\Http\Controllers\BaseController;
+use Luminix\Bi\Filters\Filter;
 use Luminix\Bi\Models\BiWidgetData;
 use Luminix\Bi\Widgets\Widget;
 
@@ -44,42 +45,68 @@ class DashboardController extends BaseController
 
     protected function createDashboardFromDb(BiDashboard $dbDashboard)
     {
-        // $dashboard = new Dashboard($dbDashboard->key, $dbDashboard->name);
         $dashboard = new class($dbDashboard->key, $dbDashboard->name) extends Dashboard {
             protected array $registeredWidgets = [];
+            protected array $registeredFilters = [];
             protected $name;
             protected $uriKey;
+            protected $model;
+            
             public function __construct($key, $name)
             {
                 $this->uriKey = $key;
                 $this->name = $name;
+                $this->model = BiDashboard::class;
             }
-
-            public function addWidget(string $key, string $name): Widget
+    
+            public function addWidget($widget): Widget
             {
-                $widget = new Widget($key, $name);
-                // $widget = Widget::make($key, $name);
                 $this->registeredWidgets[] = $widget;
                 return $widget;
             }
-
+    
+            public function addFilter($filter): Filter
+            {
+                $this->registeredFilters[] = $filter;
+                return $filter;
+            }
+    
             public function widgets()
             {
                 return $this->registeredWidgets;
             }
-
+    
             public function filters()
             {
-                return [];
+                return $this->registeredFilters;
             }
         };
-
+    
         // Carrega widgets
         foreach ($dbDashboard->widgets as $dbWidget) {
-            // $widget = $dashboard->addWidget($dbWidget->key, $dbWidget->name);
-
-            $widget = $dbWidget;
-
+            // Verifica se há uma classe específica para o widget
+            $widgetClass = $dbWidget->type ?? 'Luminix\Bi\Widgets\GenericWidget';
+            
+            if (!class_exists($widgetClass)) {
+                $widgetClass = 'Luminix\Bi\Widgets\GenericWidget';
+            }
+    
+            // Cria o widget usando a classe específica ou a genérica
+            $widget = $widgetClass::create($dbWidget->key, $dbWidget->name);
+            
+            // Configura propriedades do widget
+            if ($dbWidget->component) {
+                $widget->component = $dbWidget->component;
+            }
+            
+            if ($dbWidget->width) {
+                $widget->width = $dbWidget->width;
+            }
+            
+            if ($dbWidget->extra) {
+                $widget->extra = [$dbWidget->extra];
+            }
+    
             // Configura dimensões
             if ($dbWidget->dimensions->isNotEmpty()) {
                 $dimensions = $dbWidget->dimensions->map(function ($dbDimension) {
@@ -89,60 +116,55 @@ class DashboardController extends BaseController
                     }
                     return null;
                 })->filter();
-
+    
                 $widget->dimensions($dimensions);
             }
-
-
-
+    
             // Configura métricas
-            foreach ($dbWidget->metrics as $dbMetric) {
-                $metricClass = $dbMetric->type;
-                if (class_exists($metricClass)) {
-                    $metric = $metricClass::create($dbMetric->key, $dbMetric->name);
-                    $widget->metrics(collect([$metric]));
-                }
-
-
-                // Configurações adicionais
-                if ($dbWidget->component) {
-                    $widget->component = $dbWidget->component;
-                }
-
-                if ($dbWidget->width) {
-                    $widget->width = $dbWidget->width;
-                }
-
-                if ($dbWidget->extra) {
-                    $widget->extra = $dbWidget->extra;
-                }
+            if ($dbWidget->metrics->isNotEmpty()) {
+                $metrics = $dbWidget->metrics->map(function ($dbMetric) {
+                    $metricClass = $dbMetric->type;
+                    if (class_exists($metricClass)) {
+                        return $metricClass::create($dbMetric->key, $dbMetric->name);
+                    }
+                    return null;
+                })->filter();
+    
+                $widget->metrics($metrics);
             }
-
-            $dashboard->widgets(collect([$widget]));
+    
+            $dashboard->addWidget($widget);
         }
-
-
+    
         // Carrega filtros
         foreach ($dbDashboard->filters as $dbFilter) {
-            // $filter = $dashboard->addFilter($dbFilter->key, $dbFilter->name);
-            $filter = $dbFilter;
-
+            $filterClass = $dbFilter->type ?? 'Luminix\Bi\Filters\GenericFilter';
+            
+            if (!class_exists($filterClass)) {
+                $filterClass = 'Luminix\Bi\Filters\GenericFilter';
+            }
+    
+            $filter = $filterClass::create($dbFilter->key, $dbFilter->name);
+    
             if ($dbFilter->component) {
                 $filter->component = $dbFilter->component;
             }
-
+    
             if ($dbFilter->column) {
                 $filter->column = $dbFilter->column;
             }
-
+    
             if ($dbFilter->relation) {
                 $filter->relation = $dbFilter->relation;
             }
-
-            $dashboard->filters(collect([$filter]));
+    
+            if ($dbFilter->options) {
+                $filter->options = [$dbFilter->options];
+            }
+    
+            $dashboard->addFilter($filter);
         }
-
-
+    
         return $dashboard;
     }
 
