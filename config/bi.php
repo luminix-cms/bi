@@ -44,4 +44,15 @@ return [
     */
     'debug'      => env('LUMINIX_BI_DEBUG', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Database connection for BI
+    |--------------------------------------------------------------------------
+    |
+    | Nome da conexão que será usada exclusivamente para consultas do BI.
+    | Use uma connection existente em config/database.php
+    |
+    */
+    'connection' => env('BI_DB_CONNECTION', 'bi_connection'),
+
 ];
