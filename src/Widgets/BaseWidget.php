@@ -7,6 +7,7 @@ use stdClass;
 use Luminix\Bi\Dashboard;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Luminix\Bi\Services\QueryService;
 use Luminix\Bi\Support\BiRequest;
 
 abstract class BaseWidget implements \JsonSerializable, Widget
@@ -85,9 +86,7 @@ abstract class BaseWidget implements \JsonSerializable, Widget
 
         $connection = config('luminix.bi.connection');
 
-        $baseQuery = $connection
-            ? $dashboard->model::on($connection)
-            : $dashboard->model::query();
+        $baseQuery = QueryService::create($dashboard->model);
 
         $builder = method_exists($dashboard, 'scope')
             ? $dashboard->scope($baseQuery)

@@ -4,6 +4,7 @@ namespace Luminix\Bi\Filters;
 
 use Luminix\Bi\Dashboard;
 use Illuminate\Database\Eloquent\Builder;
+use Luminix\Bi\Services\QueryService;
 use Luminix\Bi\Support\BiRequest;
 
 class RelationFilter extends BaseRelationFilter
@@ -41,11 +42,8 @@ class RelationFilter extends BaseRelationFilter
     public function extra(Dashboard $dashboard, BiRequest $request): array
     {
         $related = $this->getRelatedModel($dashboard);
-        $connection = config('luminix.bi.connection');
 
-        $query = $connection
-            ? $related::on($connection)
-            : $related->newQuery();
+        $query = QueryService::create($related);
 
         return [
             'options'     => $this->scope->call($this, $query)->select($related->getKeyName(), $this->otherColumn ?? 'name')->get(),
