@@ -15,10 +15,8 @@ class BiServiceProvider extends ServiceProvider
             $this->registerPublishing();
         }
 
-        //$this->setUpRouteModelBinding();
         $this->mergeDefaultConfig();
 
-        $this->registerViews();
         $this->registerRoutes();
         $this->registerCommands();
         $this->bindResolverToContainer();
@@ -38,20 +36,10 @@ class BiServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../config/bi.php' => config_path('luminix/bi.php')
         ], 'bi-config');
-
-        $this->publishes([
-            __DIR__ . '/../public' => public_path('vendor/bi')
-        ], 'bi-assets');
-    }
-
-    protected function registerViews()
-    {
-        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'bi');
     }
 
     protected function registerRoutes()
     {
-        $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
         $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
     }
 

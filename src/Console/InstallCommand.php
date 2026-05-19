@@ -28,9 +28,8 @@ class InstallCommand extends Command
      */
     public function handle()
     {
-        $this->comment('Publishing Bi Assets / Config...');
+        $this->comment('Publishing Bi Config...');
         $this->callSilent('vendor:publish', ['--tag' => 'bi-config']);
-        $this->callSilent('vendor:publish', ['--tag' => 'bi-assets']);
 
         $this->comment('Publishing Bi Service Provider...');
         $this->callSilent('vendor:publish', ['--tag' => 'bi-provider']);
