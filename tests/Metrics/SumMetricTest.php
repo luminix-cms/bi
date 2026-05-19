@@ -5,7 +5,7 @@ namespace Luminix\Bi\Tests\Metrics;
 use Luminix\Bi\Metrics\Metric;
 use Luminix\Bi\Metrics\SumMetric;
 
-class SumMetricTest extends AbstractMetricTest
+class SumMetricTest extends AbstractMetricTestCase
 {
     protected function buildMetric(): Metric
     {

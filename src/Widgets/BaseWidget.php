@@ -6,6 +6,7 @@ use Closure;
 use stdClass;
 use Luminix\Bi\Dashboard;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Luminix\Bi\Support\BiRequest;
 
 abstract class BaseWidget implements \JsonSerializable, Widget
@@ -81,9 +82,16 @@ abstract class BaseWidget implements \JsonSerializable, Widget
 
     protected function getBaseBuilder(Dashboard $dashboard): Builder
     {
-        $builder = method_exists($dashboard, 'scope')
-            ? $dashboard->scope($dashboard->model::query())
+
+        $connection = config('luminix.bi.connection');
+
+        $baseQuery = $connection
+            ? $dashboard->model::on($connection)
             : $dashboard->model::query();
+
+        $builder = method_exists($dashboard, 'scope')
+            ? $dashboard->scope($baseQuery)
+            : $baseQuery;
 
         $builder = $this->scope->call($this, $builder);
 

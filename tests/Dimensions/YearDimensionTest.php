@@ -5,7 +5,7 @@ namespace Luminix\Bi\Tests\Dimensions;
 use Luminix\Bi\Dimensions\Dimension;
 use Luminix\Bi\Dimensions\YearDimension;
 
-class YearDimensionTest extends AbstractDimensionTest
+class YearDimensionTest extends AbstractDimensionTestCase
 {
     protected function buildDimension(): Dimension
     {

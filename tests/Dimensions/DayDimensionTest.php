@@ -5,7 +5,7 @@ namespace Luminix\Bi\Tests\Dimensions;
 use Luminix\Bi\Dimensions\Dimension;
 use Luminix\Bi\Dimensions\DayDimension;
 
-class DayDimensionTest extends AbstractDimensionTest
+class DayDimensionTest extends AbstractDimensionTestCase
 {
     protected function buildDimension(): Dimension
     {

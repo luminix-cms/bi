@@ -5,7 +5,7 @@ namespace Luminix\Bi\Tests\Metrics;
 use Luminix\Bi\Metrics\Metric;
 use Luminix\Bi\Metrics\RawMetric;
 
-class RawMetricTest extends AbstractMetricTest
+class RawMetricTest extends AbstractMetricTestCase
 {
     protected function buildMetric(): Metric
     {

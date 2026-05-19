@@ -34,6 +34,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Database Connection
+    |--------------------------------------------------------------------------
+    |
+    | The database connection used for all BI queries. Useful in master/slave
+    | setups where reads should go to a replica. When null, the model's default
+    | connection is used (DB_CONNECTION).
+    |
+    */
+    'connection' => env('BI_DB_CONNECTION', null),
+
+    /*
+    |--------------------------------------------------------------------------
     | Debug
     |--------------------------------------------------------------------------
     |

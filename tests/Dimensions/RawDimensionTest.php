@@ -5,7 +5,7 @@ namespace Luminix\Bi\Tests\Dimensions;
 use Luminix\Bi\Dimensions\Dimension;
 use Luminix\Bi\Dimensions\RawDimension;
 
-class RawDimensionTest extends AbstractDimensionTest
+class RawDimensionTest extends AbstractDimensionTestCase
 {
     protected function buildDimension(): Dimension
     {

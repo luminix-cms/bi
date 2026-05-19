@@ -8,8 +8,11 @@ use Luminix\Bi\Widgets\BigNumber;
 use Luminix\Bi\Dimensions\Dimension;
 use Luminix\Bi\Tests\Models\FooModel;
 
-abstract class AbstractDimensionTest extends TestCase
+abstract class AbstractDimensionTestCase extends TestCase
 {
+
+    protected Builder $baseBuilder;
+
     public function setUp(): void
     {
         parent::setUp();

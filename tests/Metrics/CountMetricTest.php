@@ -5,7 +5,7 @@ namespace Luminix\Bi\Tests\Metrics;
 use Luminix\Bi\Metrics\Metric;
 use Luminix\Bi\Metrics\CountMetric;
 
-class CountMetricTest extends AbstractMetricTest
+class CountMetricTest extends AbstractMetricTestCase
 {
     protected function buildMetric(): Metric
     {

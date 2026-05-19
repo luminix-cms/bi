@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Luminix\Bi\Widgets\BigNumber;
 use Luminix\Bi\Tests\Models\FooModel;
 
-abstract class AbstractMetricTest extends TestCase
+abstract class AbstractMetricTestCase extends TestCase
 {
+
+    protected Builder $baseBuilder;
+
     public function setUp(): void
     {
         parent::setUp();

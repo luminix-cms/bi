@@ -41,11 +41,16 @@ class RelationFilter extends BaseRelationFilter
     public function extra(Dashboard $dashboard, BiRequest $request): array
     {
         $related = $this->getRelatedModel($dashboard);
+        $connection = config('luminix.bi.connection');
+
+        $query = $connection
+            ? $related::on($connection)
+            : $related->newQuery();
 
         return [
-            'options'     => $this->scope->call($this, $related->newQuery())->select($related->getKeyName(), $this->otherColumn ?? 'name')->get(),
+            'options'     => $this->scope->call($this, $query)->select($related->getKeyName(), $this->otherColumn ?? 'name')->get(),
             'otherColumn' => $this->otherColumn,
-            'primaryKey' => $related->getKeyName(),
+            'primaryKey'  => $related->getKeyName(),
         ];
     }
 }

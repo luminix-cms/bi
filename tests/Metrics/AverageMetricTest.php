@@ -5,7 +5,7 @@ namespace Luminix\Bi\Tests\Metrics;
 use Luminix\Bi\Metrics\Metric;
 use Luminix\Bi\Metrics\AverageMetric;
 
-class AverageMetricTest extends AbstractMetricTest
+class AverageMetricTest extends AbstractMetricTestCase
 {
     protected function buildMetric(): Metric
     {

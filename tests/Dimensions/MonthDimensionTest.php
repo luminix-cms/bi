@@ -5,7 +5,7 @@ namespace Luminix\Bi\Tests\Dimensions;
 use Luminix\Bi\Dimensions\Dimension;
 use Luminix\Bi\Dimensions\MonthDimension;
 
-class MonthDimensionTest extends AbstractDimensionTest
+class MonthDimensionTest extends AbstractDimensionTestCase
 {
     protected function buildDimension(): Dimension
     {
