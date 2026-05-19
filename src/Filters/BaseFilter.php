@@ -6,7 +6,7 @@ use Luminix\Bi\Dashboard;
 use Illuminate\Database\Eloquent\Builder;
 use Luminix\Bi\Support\BiRequest;
 
-abstract class BaseFilter implements Filter
+abstract class BaseFilter
 {
     public $key;
     public $name;

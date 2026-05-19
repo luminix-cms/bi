@@ -2,7 +2,7 @@
 
 namespace Luminix\Bi;
 
-use Luminix\Bi\Filters\Filter;
+use Luminix\Bi\Filters\BaseFilter;
 use Luminix\Bi\Widgets\Widget;
 
 abstract class Dashboard implements \JsonSerializable
@@ -26,7 +26,7 @@ abstract class Dashboard implements \JsonSerializable
 
     public function findFilterOrFail($filterKey)
     {
-        $filter = collect($this->filters())->first(function (Filter $filter) use ($filterKey) {
+        $filter = collect($this->filters())->first(function (BaseFilter $filter) use ($filterKey) {
             return $filter->key == $filterKey;
         });
 
