@@ -30,7 +30,7 @@ return [
     | These are the middlewares that will be applied to the package routes.
     |
     */
-    'middleware' => ['web', 'auth', 'can:viewBi'],
+    'middleware' => ['web', 'auth', 'can:read-bi-reports'],
 
     /*
     |--------------------------------------------------------------------------
