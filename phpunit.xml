@@ -9,6 +9,7 @@
   <testsuites>
     <testsuite name="Feature">
       <directory suffix="Test.php">./tests/Dimensions</directory>
+      <directory suffix="Test.php">./tests/Filters</directory>
       <directory suffix="Test.php">./tests/Metrics</directory>
       <directory suffix="Test.php">./tests/Widgets</directory>
     </testsuite>
