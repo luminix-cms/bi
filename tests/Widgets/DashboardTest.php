@@ -2,6 +2,7 @@
 
 namespace Luminix\Bi\Tests\Widgets;
 
+use Luminix\Bi\Concerns\HasCsvOutput;
 use Luminix\Bi\Dashboard;
 use Luminix\Bi\Filters\StringFilter;
 use Luminix\Bi\Tests\Models\FooModel;
@@ -92,6 +93,31 @@ class DashboardTest extends TestCase
         $this->assertTrue($dashboard->viewable());
     }
 
+    public function test_has_csv_output_returns_false_by_default(): void
+    {
+        $dashboard = $this->makeDashboard();
+
+        $this->assertFalse($dashboard->hasCsvOutput());
+        $this->assertFalse($dashboard->jsonSerialize()['csvEnabled']);
+    }
+
+    public function test_has_csv_output_returns_true_when_trait_is_used(): void
+    {
+        $dashboard = new class extends Dashboard {
+            use HasCsvOutput;
+
+            public $uriKey = 'csv-dashboard';
+            public $name   = 'CSV Dashboard';
+            public $model  = FooModel::class;
+
+            public function widgets(): array { return []; }
+            public function filters(): array { return []; }
+        };
+
+        $this->assertTrue($dashboard->hasCsvOutput());
+        $this->assertTrue($dashboard->jsonSerialize()['csvEnabled']);
+    }
+
     public function test_json_serialize_returns_required_keys(): void
     {
         $dashboard = $this->makeDashboard();
@@ -99,6 +125,7 @@ class DashboardTest extends TestCase
 
         $this->assertArrayHasKey('uriKey', $data);
         $this->assertArrayHasKey('name', $data);
+        $this->assertArrayHasKey('csvEnabled', $data);
         $this->assertArrayHasKey('widgets', $data);
         $this->assertArrayHasKey('filters', $data);
     }

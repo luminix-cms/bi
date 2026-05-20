@@ -85,6 +85,8 @@ Executa a query do widget e retorna os dados calculados.
 
 Retorna os dados do widget como arquivo CSV para download. Aceita os mesmos query params do endpoint de dados.
 
+**Requer** que o dashboard use o trait `HasCsvOutput`. Sem ele, o endpoint retorna `404`. Consulte [Exportação CSV](../04-widgets/06-csv.md).
+
 **Resposta:** stream de texto com `Content-Disposition: attachment`.
 
 ---

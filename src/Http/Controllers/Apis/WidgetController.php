@@ -37,6 +37,8 @@ class WidgetController extends BaseController
 
         $dashboard = $this->dashboardResolver->find($dashboard) ?? abort(404);
 
+        abort_unless($dashboard->hasCsvOutput(), 404);
+
         $widget = $dashboard->findWidgetOrFail($widgetKey);
 
         $data = $widget->data($dashboard, $request);

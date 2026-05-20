@@ -3,9 +3,12 @@
 namespace DummyNamespace;
 
 use Luminix\Bi\Dashboard;
+// use Luminix\Bi\Concerns\HasCsvOutput;
 
 class DummyClass extends Dashboard
 {
+    // use HasCsvOutput;
+
 
     public $model  = DummyModel::class;
     public $uriKey = 'dummyName';

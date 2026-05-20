@@ -28,9 +28,12 @@ app/Bi/Dashboards/SalesDashboard.php
 namespace App\Bi\Dashboards;
 
 use Luminix\Bi\Dashboard;
+// use Luminix\Bi\Concerns\HasCsvOutput;
 
 class SalesDashboard extends Dashboard
 {
+    // use HasCsvOutput;
+
     public $model  = \App\Models\Sale::class;
     public $uriKey = 'salesDashboard';
     public $name   = 'SalesDashboard';
@@ -46,6 +49,8 @@ class SalesDashboard extends Dashboard
     }
 }
 ```
+
+Para habilitar a exportação CSV em todos os widgets do dashboard, descomente as duas linhas marcadas. Veja [Exportação CSV](../04-widgets/06-csv.md).
 
 ## Propriedades
 

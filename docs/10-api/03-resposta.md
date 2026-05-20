@@ -23,6 +23,7 @@ Array de objetos de dashboard. Cada objeto inclui a configuração completa de w
         {
             "uriKey": "orders",
             "name": "Orders",
+            "csvEnabled": false,
             "widgets": [
                 {
                     "key": "monthly-revenue",
@@ -51,6 +52,8 @@ Array de objetos de dashboard. Cada objeto inclui a configuração completa de w
 }
 ```
 
+O campo `csvEnabled` indica se o dashboard tem o trait `HasCsvOutput`. O frontend pode usá-lo para exibir ou ocultar o botão de download. Consulte [Exportação CSV](../04-widgets/06-csv.md).
+
 ---
 
 ### `GET /{path}-apis/{dashboard}/widgets`
@@ -63,6 +66,7 @@ Objeto de um único dashboard. A estrutura é idêntica a cada item do array ret
     "data": {
         "uriKey": "orders",
         "name": "Orders",
+        "csvEnabled": false,
         "widgets": [...],
         "filters": [...]
     }

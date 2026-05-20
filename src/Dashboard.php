@@ -37,13 +37,19 @@ abstract class Dashboard implements \JsonSerializable
         return $filter;
     }
 
+    public function hasCsvOutput(): bool
+    {
+        return false;
+    }
+
     public function jsonSerialize(): mixed
     {
         return [
-            'uriKey'  => $this->uriKey,
-            'name'    => $this->name,
-            'widgets' => $this->widgets(),
-            'filters' => $this->filters()
+            'uriKey'     => $this->uriKey,
+            'name'       => $this->name,
+            'csvEnabled' => $this->hasCsvOutput(),
+            'widgets'    => $this->widgets(),
+            'filters'    => $this->filters()
         ];
     }
 

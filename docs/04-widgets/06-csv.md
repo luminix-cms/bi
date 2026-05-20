@@ -1,6 +1,42 @@
 # Exportação CSV
 
-Todo widget do Luminix BI possui um endpoint de exportação CSV automático. Nenhuma configuração adicional é necessária — se o widget existe no dashboard, o endpoint existe.
+A exportação CSV é **desativada por padrão**. Para habilitá-la em um dashboard, adicione o trait `HasCsvOutput` à classe do dashboard.
+
+---
+
+## Habilitando a Exportação
+
+```php
+<?php
+
+namespace App\Bi\Dashboards;
+
+use Luminix\Bi\Dashboard;
+use Luminix\Bi\Concerns\HasCsvOutput;
+
+class SalesDashboard extends Dashboard
+{
+    use HasCsvOutput;
+
+    // ...
+}
+```
+
+Com o trait presente, **todos os widgets** do dashboard passam a expor o endpoint de download. Sem ele, requisições ao endpoint retornam `404`.
+
+O campo `csvEnabled` na resposta JSON do dashboard reflete o estado atual:
+
+```json
+{
+    "uriKey": "sales",
+    "name": "Sales",
+    "csvEnabled": true,
+    "widgets": [...],
+    "filters": [...]
+}
+```
+
+O frontend pode usar esse campo para exibir ou ocultar o botão de download.
 
 ---
 
