@@ -1,194 +1,88 @@
 # RelationFilter
 
-`RelationFilter` é o filtro por relacionamento Eloquent. Pense nele como um dropdown onde o usuário escolhe um ou mais registros de um modelo relacionado — por exemplo, "mostrar apenas os pedidos feitos pelos vendedores João e Maria". Internamente, o filtro verifica a existência do relacionamento com `whereHas`, o que garante que somente os pedidos vinculados aos vendedores selecionados sejam retornados.
+`RelationFilter` filtra registros pela presença de relacionamentos Eloquent. O usuário seleciona um ou mais registros de um modelo relacionado e o filtro usa `whereHas` para retornar apenas os registros que possuem esse relacionamento.
 
-## Propósito
+É o filtro indicado quando a informação usada como critério não é uma coluna no próprio modelo, mas sim uma chave estrangeira apontando para outra tabela — por exemplo, filtrar pedidos por categoria ou por vendedor.
 
-Enquanto o `StringFilter` filtra por valores de uma coluna do próprio modelo principal, o `RelationFilter` filtra pela presença de registros em um modelo relacionado com IDs específicos. Isso é útil quando a "categoria" de um registro não é uma string diretamente na tabela, mas sim uma chave estrangeira apontando para outra tabela.
-
-## SQL Gerado
-
-`RelationFilter` traduz a seleção de IDs em uma subconsulta de existência:
-
-```sql
-WHERE EXISTS (
-    SELECT 1
-    FROM `vendedores`
-    WHERE `vendedores`.`pedido_id` = `pedidos`.`id`
-    AND `vendedores`.`id` IN (1, 3, 7)
-)
-```
-
-O Eloquent cuida do `JOIN` implícito através do método `whereHas`. O filtro apenas informa quais IDs do modelo relacionado devem estar presentes.
-
-## Formato do `$filterData`
-
-O `$filterData` que chega ao método `apply()` é um array de IDs inteiros do modelo relacionado:
-
-```json
-[1, 3, 7]
-```
-
-Cada número é uma chave primária do modelo relacionado. O `RelationFilter` usa `$this->getRelatedModel($builder)->getKeyName()` para descobrir o nome correto da coluna de chave primária do modelo relacionado, tornando o filtro agnóstico ao nome da PK.
-
-## Herança de `BaseRelationFilter`
-
-`RelationFilter` estende `BaseRelationFilter`, que por sua vez estende `BaseFilter`. `BaseRelationFilter` adiciona dois métodos de configuração:
-
-### `->relation()`
-
-Define o nome da relação Eloquent no modelo principal. Por padrão, o pacote assume que o nome da relação é igual ao `$key` do filtro:
+## Exemplo
 
 ```php
-RelationFilter::create('vendedor', 'Vendedor')
-// A relação assumida é 'vendedor' — igual ao $key
-```
+use Luminix\Bi\Filters\RelationFilter;
 
-Quando o nome da relação difere do `$key`:
-
-```php
-RelationFilter::create('responsavel', 'Responsável')
-    ->relation('vendedor') // a relação no modelo se chama 'vendedor'
-```
-
-### `->otherColumn()`
-
-Define a coluna do modelo relacionado que será exibida como rótulo no dropdown do front-end. O padrão é `'name'`:
-
-```php
-RelationFilter::create('vendedor', 'Vendedor')
-    ->otherColumn('nome_completo') // exibir 'nome_completo' no dropdown
-```
-
-### Relações Aninhadas
-
-`BaseRelationFilter` suporta relações aninhadas usando ponto como separador:
-
-```php
-RelationFilter::create('empresa', 'Empresa')
-    ->relation('vendedor.empresa') // atravessa vendedor → empresa
-```
-
-O `getRelatedModel()` percorre a cadeia de relações para resolver o modelo final.
-
-## O Método `extra()` e as Opções do Dropdown
-
-`RelationFilter` sobrescreve `extra()` para retornar as opções que o front-end exibirá no dropdown:
-
-```php
-public function extra(Dashboard $dashboard, BiRequest $request): array
+public function filters(): array
 {
     return [
-        'options'     => $query->select($related->getKeyName(), $this->otherColumn ?? 'name')->get(),
-        'otherColumn' => $this->otherColumn,
-        'primaryKey'  => $related->getKeyName(),
+        RelationFilter::create('category', 'Category')
+            ->otherColumn('name'),
     ];
 }
 ```
 
-A resposta do endpoint `/bi-apis/{dashboard}/filters/{filter}` tem o seguinte formato:
+O primeiro argumento é o `$key` (e também o nome da relação Eloquent no modelo, por padrão). O segundo é o nome exibido na interface. `->otherColumn()` define qual coluna do modelo relacionado é exibida como rótulo no dropdown (padrão: `'name'`).
+
+## Formato de Envio no Request
+
+O frontend envia os IDs dos registros selecionados como array:
+
+```
+?filters[category][]=5&filters[category][]=8
+```
+
+Isso gera:
+
+```sql
+WHERE EXISTS (
+    SELECT 1 FROM `categories`
+    WHERE `categories`.`order_id` = `orders`.`id`
+    AND `categories`.`id` IN (5, 8)
+)
+```
+
+## Relações Aninhadas
+
+Use notação de ponto para atravessar relações:
+
+```php
+RelationFilter::create('brand', 'Brand')
+    ->relation('category.brand'),
+```
+
+O filtro percorre a cadeia `category → brand` para resolver o modelo e construir o `whereHas`.
+
+## O Método `->scope()`
+
+`->scope()` restringe tanto as opções exibidas no dropdown quanto a verificação de existência na query. Isso garante consistência: o usuário só vê e pode selecionar opções que de fato se aplicam.
+
+```php
+RelationFilter::create('category', 'Category')
+    ->otherColumn('name')
+    ->scope(function ($query) {
+        return $query->where('active', true);
+    }),
+```
+
+Com esse escopo, o dropdown exibirá apenas categorias ativas, e o `whereHas` também filtrará apenas entre categorias ativas.
+
+## O Método `extra()` — Opções para o Dropdown
+
+`RelationFilter` implementa `extra()`, chamado pelo endpoint `GET /bi-apis/{dashboard}/filters/{filter}`. Ele retorna a lista de registros do modelo relacionado para popular o dropdown:
 
 ```json
 {
     "status": 200,
     "extra": {
         "options": [
-            { "id": 1, "nome_completo": "João Silva" },
-            { "id": 3, "nome_completo": "Maria Santos" },
-            { "id": 7, "nome_completo": "Pedro Oliveira" }
+            { "id": 5, "name": "Electronics" },
+            { "id": 8, "name": "Clothing" }
         ],
-        "otherColumn": "nome_completo",
+        "otherColumn": "name",
         "primaryKey": "id"
     }
 }
 ```
 
-O front-end usa `primaryKey` para saber qual campo enviar como valor na request, e `otherColumn` para saber qual campo exibir como rótulo.
-
-### Segurança nas Opções com `QueryService`
-
-O `extra()` do `RelationFilter` usa `QueryService.create()` para construir a query de busca das opções. Isso garante que:
-
-- Se o modelo relacionado for um modelo Luminix com gates habilitados, o escopo `->allowed('read')` é aplicado automaticamente, restringindo as opções apenas aos registros que o usuário autenticado tem permissão de leitura.
-- Se a conexão `BI_DB_CONNECTION` estiver configurada, a query usará essa conexão.
-
-Assim, o dropdown nunca exibirá opções que o usuário não teria direito de ver.
-
-## O Método `->scope()`
-
-`->scope()` aceita uma `Closure` que é aplicada **tanto nas opções do dropdown** (no `extra()`) **quanto na verificação de existência** (no `apply()`). Isso garante que o filtro seja consistente: o usuário só vê e pode selecionar as opções que de fato se aplicam.
-
-```php
-RelationFilter::create('vendedor', 'Vendedor')
-    ->scope(function ($query) {
-        return $query->where('ativo', true);
-    })
-```
-
-Com esse `scope`, o dropdown mostrará apenas vendedores com `ativo = true`, e a cláusula `whereHas` também verificará apenas entre os vendedores ativos.
-
-## Exemplo: Filtrar Pedidos por Vendedor
-
-```php
-use Luminix\Bi\Filters\RelationFilter;
-
-public function filters(): array
-{
-    return [
-        RelationFilter::create('vendedor', 'Vendedor')
-            ->otherColumn('nome'),
-    ];
-}
-```
-
-Quando o usuário selecionar os vendedores com IDs 1 e 3, a request chegará com:
-
-```json
-{ "filters": { "vendedor": [1, 3] } }
-```
-
-O builder receberá:
-
-```sql
-WHERE EXISTS (
-    SELECT 1
-    FROM `vendedores`
-    WHERE `vendedores`.`pedido_id` = `pedidos`.`id`
-    AND `vendedores`.`id` IN (1, 3)
-)
-```
-
-## Exemplo com Scope: Apenas Vendedores Ativos
-
-```php
-use Luminix\Bi\Filters\RelationFilter;
-
-public function filters(): array
-{
-    return [
-        RelationFilter::create('vendedor', 'Vendedor')
-            ->otherColumn('nome')
-            ->scope(function ($query) {
-                return $query->where('ativo', true);
-            }),
-    ];
-}
-```
-
-O dropdown exibirá apenas vendedores ativos. A query de verificação de existência também restringirá ao subconjunto ativo:
-
-```sql
-WHERE EXISTS (
-    SELECT 1
-    FROM `vendedores`
-    WHERE `vendedores`.`pedido_id` = `pedidos`.`id`
-    AND `vendedores`.`ativo` = 1
-    AND `vendedores`.`id` IN (1, 3)
-)
-```
-
-Isso evita a situação em que um vendedor inativo poderia aparecer nos filtros se seus IDs fossem enviados diretamente na request.
+O frontend usa `primaryKey` para saber qual campo enviar como valor na request, e `otherColumn` para saber qual campo exibir como rótulo.
 
 ## Próximos Passos
 
-← [DateIntervalFilter](05-date-interval.md) | → [Autenticação e Autorização das Rotas](../08-seguranca/01-rotas.md)
+← [DateIntervalFilter](05-date-interval.md) | → [Segurança: Rotas e Middleware](../08-seguranca/01-rotas.md)

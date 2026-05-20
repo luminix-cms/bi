@@ -1,145 +1,102 @@
 # Escopo Global
 
-Imagine que um dashboard de pedidos precisa mostrar apenas os pedidos da empresa do usuário logado, independentemente de qualquer filtro que o usuário aplique. Esse tipo de restrição que nunca pode ser removida pelo usuário — e que deve estar sempre presente — é o papel do escopo global do dashboard.
+O método `scope()` permite definir restrições que se aplicam a todos os widgets do dashboard, independentemente dos filtros que o usuário enviar. É o mecanismo adequado para condições de segurança e isolamento de dados que nunca devem ser removidas pelo usuário.
 
 ## O método `scope()`
 
-O método `scope()` recebe um `Builder` do Eloquent e deve retornar o mesmo `Builder` com as cláusulas adicionais aplicadas. Ele é definido na classe do dashboard e tem a seguinte assinatura:
-
 ```php
+use Illuminate\Database\Eloquent\Builder;
+
 public function scope(Builder $builder): Builder
 {
-    // adicione restrições ao builder e retorne-o
-    return $builder;
+    return $builder->where('user_id', auth()->id());
 }
 ```
 
-A implementação padrão na classe base `Dashboard` não existe — o método é opcional. O `BaseWidget` verifica sua existência antes de chamá-lo:
+O método é opcional. Quando declarado, é aplicado antes dos filtros do usuário — portanto qualquer condição colocada aqui estará sempre presente na query final.
 
-```php
-// BaseWidget::getBaseBuilder()
-$builder = method_exists($dashboard, 'scope')
-    ? $dashboard->scope($baseQuery)
-    : $baseQuery;
-```
+## Ordem de aplicação
 
-## Quando o `scope()` é aplicado
+1. Escopo do dashboard (`scope()`)
+2. Escopo do widget (Closure passada via `->scope()`)
+3. Métricas e dimensões (SELECT, GROUP BY)
+4. Filtros enviados pelo usuário na requisição
 
-O escopo do dashboard é o **primeiro** passo na construção da query de qualquer widget. A ordem de aplicação é:
-
-1. `QueryService::create()` — cria o builder base com a conexão correta e o `allowed()` do Luminix Backend
-2. `$dashboard->scope()` — aplica as restrições globais do dashboard
-3. `$widget->scope` (Closure) — aplica o escopo específico do widget, se houver
-4. `applyAttributes()` — aplica métricas e dimensões (SELECT, GROUP BY)
-5. `applyFilters()` — aplica os filtros enviados pelo usuário na requisição
-
-Isso significa que qualquer condição colocada em `scope()` do dashboard está presente em todas as queries, e os filtros do usuário são aplicados **por cima** dessas condições — nunca substituindo-as.
-
-## Casos de uso reais
+## Casos de uso
 
 ### Isolamento por tenant
 
-Em sistemas multi-tenant, cada usuário deve ver apenas os dados da sua empresa:
-
 ```php
 public function scope(Builder $builder): Builder
 {
-    return $builder->where('empresa_id', auth()->user()->empresa_id);
+    return $builder->where('company_id', auth()->user()->company_id);
 }
 ```
-
-A query resultante sempre incluirá:
-
-```sql
-WHERE `empresa_id` = 42
-```
-
-Mesmo que o usuário passe outros filtros na requisição, essa cláusula permanece.
 
 ### Status fixo
 
-Para um dashboard de "pedidos ativos", que nunca deve mostrar pedidos cancelados ou arquivados:
+Para um dashboard que nunca deve mostrar pedidos cancelados:
 
 ```php
 public function scope(Builder $builder): Builder
 {
-    return $builder->whereIn('status', ['pendente', 'aprovado', 'em_entrega']);
+    return $builder->whereIn('status', ['pending', 'approved', 'shipped']);
 }
 ```
 
-### Soft deletes
-
-Para excluir registros deletados da análise, mesmo que o model use `SoftDeletes`:
-
-```php
-public function scope(Builder $builder): Builder
-{
-    return $builder->whereNull('deleted_at');
-}
-```
-
-> Se o model da aplicação usa o trait `SoftDeletes` do Laravel, o Eloquent já exclui registros deletados automaticamente via escopo global do model. Use este padrão apenas se precisar filtrar soft deletes em models que não usam o trait, ou se quiser ser explícito na intenção do dashboard.
-
-### Multi-empresa com filtro adicional
-
-Um dashboard financeiro que mostra apenas lançamentos do exercício atual e da empresa do usuário:
+### Combinando condições
 
 ```php
 public function scope(Builder $builder): Builder
 {
     return $builder
-        ->where('empresa_id', auth()->user()->empresa_id)
-        ->whereYear('data_lancamento', now()->year);
+        ->where('company_id', auth()->user()->company_id)
+        ->where('is_test', false);
 }
 ```
 
-## Diferença entre o `scope()` do dashboard e o `scope()` do widget
-
-O dashboard e os widgets possuem mecanismos de escopo com papéis diferentes:
+## Escopo do dashboard vs. escopo do widget
 
 | Aspecto | `scope()` do Dashboard | `scope()` do Widget |
 |---|---|---|
-| Tipo | Método PHP na classe do dashboard | Closure passada via `->scope()` |
-| Aplicado a | Todos os widgets do dashboard | Apenas ao widget específico |
-| Ordem de aplicação | Antes do escopo do widget | Após o escopo do dashboard |
-| Caso de uso | Restrições de segurança/tenant | Condições específicas de um widget |
+| Tipo | Método PHP na classe | Closure passada via `->scope()` |
+| Aplicado a | Todos os widgets | Apenas ao widget específico |
+| Caso de uso | Segurança / isolamento de tenant | Condições específicas de um widget |
 
 Exemplo combinando os dois:
 
 ```php
-// No dashboard — restrição global de tenant
+// No dashboard — restrição de tenant
 public function scope(Builder $builder): Builder
 {
-    return $builder->where('empresa_id', auth()->user()->empresa_id);
+    return $builder->where('company_id', auth()->user()->company_id);
 }
 
-// No widget — restrição específica deste widget
+// Em um widget específico — restrição adicional
 public function widgets(): array
 {
     return [
-        BigNumber::create('pedidos-urgentes', 'Pedidos Urgentes')
+        BigNumber::create('urgent-orders', 'Urgent Orders')
             ->scope(function (Builder $builder) {
-                return $builder->where('prioridade', 'alta')
-                               ->where('status', 'pendente');
+                return $builder->where('priority', 'high')
+                               ->where('status', 'pending');
             })
             ->metric(CountMetric::create('total', 'Total')),
     ];
 }
 ```
 
-A query final do widget `pedidos-urgentes` terá ambas as condições:
+A query final do widget terá ambas as condições:
 
 ```sql
 SELECT COUNT(*) AS `total`
-FROM `pedidos`
-WHERE `empresa_id` = 42          -- escopo do dashboard
-  AND `prioridade` = 'alta'      -- escopo do widget
-  AND `status` = 'pendente'      -- escopo do widget
+FROM `orders`
+WHERE `company_id` = 42       -- escopo do dashboard
+  AND `priority` = 'high'     -- escopo do widget
+  AND `status` = 'pending'    -- escopo do widget
 ```
 
 ## Exemplo completo
-
-Dashboard que mostra apenas pedidos do tenant atual, excluindo pedidos de teste:
 
 ```php
 <?php
@@ -153,53 +110,43 @@ use Luminix\Bi\Metrics\CountMetric;
 use Luminix\Bi\Metrics\SumMetric;
 use Luminix\Bi\Widgets\BigNumber;
 
-class PedidosDashboard extends Dashboard
+class OrdersDashboard extends Dashboard
 {
-    public $model  = \App\Models\Pedido::class;
-    public $uriKey = 'pedidos';
-    public $name   = 'Dashboard de Pedidos';
+    public $model  = \App\Models\Order::class;
+    public $uriKey = 'orders';
+    public $name   = 'Orders Dashboard';
 
     public function scope(Builder $builder): Builder
     {
         return $builder
-            ->where('empresa_id', auth()->user()->empresa_id)
-            ->where('is_teste', false);
+            ->where('company_id', auth()->user()->company_id)
+            ->where('is_test', false);
     }
 
     public function filters(): array
     {
         return [
-            DateIntervalFilter::create('created_at', 'Período'),
+            DateIntervalFilter::create('created_at', 'Period'),
         ];
     }
 
     public function widgets(): array
     {
         return [
-            BigNumber::create('total', 'Total de Pedidos')
-                ->metric(CountMetric::create('qtd', 'Quantidade'))
+            BigNumber::create('total', 'Total Orders')
+                ->metric(CountMetric::create('qty', 'Quantity'))
                 ->width('1/3'),
 
-            BigNumber::create('receita', 'Receita Total')
+            BigNumber::create('revenue', 'Total Revenue')
                 ->metric(
-                    SumMetric::create('valor', 'Valor')
-                        ->column('valor_total')
+                    SumMetric::create('amount', 'Amount')
+                        ->column('total_amount')
                         ->color('#4CAF50')
                 )
                 ->width('1/3'),
         ];
     }
 }
-```
-
-Com esse dashboard, um usuário da empresa de `id` `42` que filtra por período verá a seguinte query executada:
-
-```sql
-SELECT COUNT(*) AS `qtd`
-FROM `pedidos`
-WHERE `empresa_id` = 42
-  AND `is_teste` = 0
-  AND `created_at` BETWEEN '2024-01-01 00:00:00' AND '2024-03-31 23:59:59'
 ```
 
 ## Próximos Passos

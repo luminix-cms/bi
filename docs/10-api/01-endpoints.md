@@ -1,42 +1,38 @@
-# Endpoints Disponíveis
+# Endpoints
 
-O Luminix BI expõe cinco endpoints REST que cobrem toda a comunicação entre o front-end e o back-end: listagem de dashboards, dados de widgets, download CSV e metadados de filtros. Todos os endpoints são registrados automaticamente pelo `BiServiceProvider` ao instalar o pacote.
+O Luminix BI registra cinco endpoints REST automaticamente via `BiServiceProvider`. Não é necessário declarar rotas manualmente.
 
 ## Tabela de Endpoints
 
-| Método | Path (prefixo padrão) | Controller@Action | Descrição |
-|---|---|---|---|
-| `GET` | `/bi-apis/dashboards` | `DashboardController@getDashboards` | Lista todos os dashboards visíveis |
-| `GET` | `/bi-apis/{dashboard}/widgets` | `DashboardController@getWidgets` | Retorna um dashboard com seus widgets e filtros |
-| `GET` | `/bi-apis/{dashboard}/widgets/{widget}` | `WidgetController@getWidget` | Retorna os dados de um widget específico |
-| `GET` | `/bi-apis/{dashboard}/widgets/{widget}/csv` | `WidgetController@download` | Faz o download dos dados do widget em CSV |
-| `GET` | `/bi-apis/{dashboard}/filters/{filter}` | `FilterController@getFilter` | Retorna os metadados extras de um filtro |
+| Método | Path | Descrição |
+|---|---|---|
+| `GET` | `/{path}-apis/dashboards` | Lista dashboards visíveis |
+| `GET` | `/{path}-apis/{dashboard}/widgets` | Configuração completa do dashboard (widgets e filtros) |
+| `GET` | `/{path}-apis/{dashboard}/widgets/{widget}` | Dados calculados do widget |
+| `GET` | `/{path}-apis/{dashboard}/widgets/{widget}/csv` | Download dos dados em CSV |
+| `GET` | `/{path}-apis/{dashboard}/filters/{filter}` | Metadados extras do filtro |
 
-Os parâmetros `{dashboard}` e `{widget}` são os valores de `uriKey` e `key` definidos nas respectivas classes.
+Os parâmetros de rota `{dashboard}` e `{widget}` correspondem aos valores de `uriKey` e `key` definidos nas respectivas classes.
 
-## Como o Prefixo é Montado
+## Prefixo das Rotas
 
-O prefixo das rotas é construído a partir da configuração `luminix.bi.path`, com o sufixo `-apis` adicionado automaticamente:
+O prefixo é montado a partir da configuração `luminix.bi.path` com o sufixo `-apis`:
 
 ```
 {path}-apis
 ```
 
-O valor padrão de `path` é `bi`, resultando no prefixo `bi-apis`. Para alterar, defina a variável de ambiente `LUMINIX_BI_PATH` no arquivo `.env`:
+O valor padrão é `bi`, resultando em `/bi-apis/...`. Para alterar, defina no `.env`:
 
 ```bash
 LUMINIX_BI_PATH=analytics
 ```
 
-Com essa configuração, o prefixo passa a ser `analytics-apis` e todos os endpoints ficam sob `/analytics-apis/...`.
+Com essa configuração, todos os endpoints ficam sob `/analytics-apis/...`.
 
-Para confirmar o caminho configurado, consulte o arquivo `config/luminix/bi.php` (ou `config/bi.php` antes da publicação):
+Para mais detalhes sobre a configuração do pacote, consulte [Configuração](../02-instalacao/02-configuracao.md).
 
-```php
-'path' => env('LUMINIX_BI_PATH', 'bi'),
-```
-
-## Middleware Aplicado
+## Middleware
 
 Todos os endpoints compartilham o mesmo grupo de middleware, configurado em `config/luminix/bi.php`:
 
@@ -44,58 +40,65 @@ Todos os endpoints compartilham o mesmo grupo de middleware, configurado em `con
 'middleware' => ['web', 'auth', 'can:read-bi-reports'],
 ```
 
-O middleware padrão exige:
+Para personalizar, publique a configuração e edite o array `middleware`. Consulte [Segurança nas Rotas](../08-seguranca/01-rotas.md) para detalhes sobre controle de acesso.
 
-- `web` — habilita a sessão e o CSRF do Laravel
-- `auth` — o usuário deve estar autenticado
-- `can:read-bi-reports` — o usuário deve ter a ability `read-bi-reports` (Gate ou Policy)
+## Contrato de Cada Endpoint
 
-Para personalizar, publique a configuração com `php artisan vendor:publish --tag=bi-config` e edite o array `middleware`.
+### `GET /{path}-apis/dashboards`
 
-> Além do middleware de grupo, cada dashboard pode restringir o acesso individualmente sobrescrevendo o método `viewable()` na classe do dashboard. Dashboards onde `viewable()` retorna `false` não aparecem na listagem e retornam 404 se acessados diretamente.
+Lista todos os dashboards cujo método `viewable()` retorna `true`.
 
-## Exemplos de Requisição
+**Parâmetros:** nenhum.
 
-### Listar todos os dashboards
+**Resposta:** array de objetos de dashboard com seus widgets e filtros serializados.
 
-```bash
-curl -X GET https://seuapp.com/bi-apis/dashboards \
-     -H "Accept: application/json" \
-     -H "X-XSRF-TOKEN: {csrf_token}"
-```
+---
 
-### Buscar widgets e filtros de um dashboard
+### `GET /{path}-apis/{dashboard}/widgets`
 
-```bash
-curl -X GET https://seuapp.com/bi-apis/vendas/widgets \
-     -H "Accept: application/json" \
-     -H "X-XSRF-TOKEN: {csrf_token}"
-```
+Retorna a configuração completa de um único dashboard.
 
-### Buscar dados de um widget com filtros
+**Parâmetros de rota:**
+- `{dashboard}` — `uriKey` do dashboard
 
-```bash
-curl -X GET "https://seuapp.com/bi-apis/vendas/widgets/receita-mensal?filters[created_at][start]=2024-01-01&filters[created_at][end]=2024-12-31" \
-     -H "Accept: application/json" \
-     -H "X-XSRF-TOKEN: {csrf_token}"
-```
+**Resposta:** objeto com `uriKey`, `name`, `widgets` e `filters`.
 
-### Fazer download CSV com filtros
+---
 
-```bash
-curl -X GET "https://seuapp.com/bi-apis/vendas/widgets/receita-mensal/csv?filters[created_at][start]=2024-01-01&filters[created_at][end]=2024-12-31" \
-     -H "X-XSRF-TOKEN: {csrf_token}" \
-     --output receita-mensal.csv
-```
+### `GET /{path}-apis/{dashboard}/widgets/{widget}`
 
-### Buscar metadados de um filtro
+Executa a query do widget e retorna os dados calculados.
 
-```bash
-curl -X GET https://seuapp.com/bi-apis/vendas/filters/status \
-     -H "Accept: application/json" \
-     -H "X-XSRF-TOKEN: {csrf_token}"
-```
+**Parâmetros de rota:**
+- `{dashboard}` — `uriKey` do dashboard
+- `{widget}` — `key` do widget
+
+**Query params:**
+- `filters[{key}]` — valor do filtro, formato depende do tipo (ver [Requisição](02-requisicao.md))
+- `sort[col]` e `sort[dir]` — ordenação (apenas para `Table`)
+
+**Resposta:** array de objetos onde cada chave corresponde ao `key` de uma métrica ou dimensão do widget.
+
+---
+
+### `GET /{path}-apis/{dashboard}/widgets/{widget}/csv`
+
+Retorna os dados do widget como arquivo CSV para download. Aceita os mesmos query params do endpoint de dados.
+
+**Resposta:** stream de texto com `Content-Disposition: attachment`.
+
+---
+
+### `GET /{path}-apis/{dashboard}/filters/{filter}`
+
+Retorna o resultado do método `extra()` do filtro — usado pelo front-end para montar controles como selects e sliders.
+
+**Parâmetros de rota:**
+- `{dashboard}` — `uriKey` do dashboard
+- `{filter}` — `key` do filtro
+
+**Resposta:** objeto com campo `extra` contendo os metadados retornados pelo filtro.
 
 ## Próximos Passos
 
-[← Criando Widgets Customizados](../09-extensibilidade/04-widget-customizado.md) | [→ Formato de Requisição](02-requisicao.md)
+[← Widgets Customizados](../09-extensibilidade/04-widget-customizado.md) | [→ Formato de Requisição](02-requisicao.md)

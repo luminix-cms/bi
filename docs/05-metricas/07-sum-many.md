@@ -1,117 +1,82 @@
 # SumManyMetric
 
-`SumManyMetric` soma uma coluna numérica de um relacionamento Eloquent. Pense nela como a resposta para "qual o total de X em cada Y?": qual o valor total dos itens de cada pedido, qual o peso total dos produtos de cada categoria, qual o saldo total das transações de cada conta.
+`SumManyMetric` soma uma coluna numérica de um relacionamento Eloquent. É a resposta para "qual o total de X em cada Y?": qual o valor total dos itens de cada pedido, qual o peso total dos produtos de cada categoria, qual o saldo total das transações de cada conta.
 
-## Propósito
+Internamente, usa o método `withSum()` do Eloquent — sem necessidade de join manual.
 
-Enquanto `SumMetric` executa `SUM(coluna)` sobre o modelo principal, `SumManyMetric` usa o método `withSum()` do Eloquent para somar uma coluna em registros de um relacionamento. O resultado é adicionado ao modelo via eager loading, sem join manual.
+## Convenção de Nomeação do `$key`
 
-Internamente, `SumManyMetric` usa `withSum()` e `groupBy($model->getKeyName())` para garantir que cada linha corresponda a um registro distinto do modelo principal.
-
-## Inferência Automática de Relação e Coluna
-
-Quando o `$key` contém o padrão `_sum_`, o pacote infere automaticamente tanto o nome da relação quanto o nome da coluna:
+O `$key` deve seguir o padrão `{relation}_sum_{column}`, onde `{relation}` é o nome do método de relacionamento e `{column}` é a coluna a ser somada. O pacote infere automaticamente ambos a partir do `$key`:
 
 ```
-'itens_sum_valor' → relação: 'itens', coluna: 'valor'
-'transacoes_sum_montante' → relação: 'transacoes', coluna: 'montante'
+'items_sum_price'        → relação: 'items',        coluna: 'price'
+'transactions_sum_amount'→ relação: 'transactions', coluna: 'amount'
 ```
-
-Exemplo usando inferência automática:
 
 ```php
-// 'itens_sum_valor' → relação 'itens', coluna 'valor'
-SumManyMetric::create('itens_sum_valor', 'Valor Total dos Itens')
+// Relação 'items' e coluna 'price' inferidas automaticamente
+SumManyMetric::create('items_sum_price', 'Valor Total dos Itens')
 ```
 
-Se o padrão `_sum_` não estiver presente no `$key`, use `->relation()` e `->column()` explicitamente:
+Se o `$key` não seguir o padrão `_sum_`, informe relação e coluna com `->relation()` e `->column()`:
 
 ```php
-SumManyMetric::create('total_itens', 'Valor Total dos Itens')
-    ->relation('itens')
-    ->column('valor')
+SumManyMetric::create('gross_revenue', 'Receita Bruta')
+    ->relation('orderLines')
+    ->column('unit_price')
 ```
 
-## O Método `->scope()`
-
-Assim como em `CountManyMetric`, o método `->scope(Closure)` adiciona condições à query do relacionamento:
+## Uso
 
 ```php
-SumManyMetric::create('itens_sum_valor', 'Valor de Itens Ativos')
-    ->scope(fn ($query) => $query->where('status', 'ativo'))
+SumManyMetric::create($key, $name)
 ```
 
-Internamente, o pacote passa o closure para o `withSum()` do Eloquent:
+## Exemplo: Valor Total dos Itens por Pedido
+
+O model `Order` possui um relacionamento `items` com coluna `price`:
 
 ```php
-$builder->withSum([
-    'itens as itens_sum_valor' => fn ($query) => $query->where('status', 'ativo')
-], 'valor');
+// App\Models\Order
+public function items(): HasMany
+{
+    return $this->hasMany(Item::class);
+}
 ```
-
-## Exemplo com Inferência Automática
-
-O exemplo a seguir soma o valor dos itens de cada pedido, com relação e coluna inferidas automaticamente:
 
 ```php
 use Luminix\Bi\Metrics\SumManyMetric;
 use Luminix\Bi\Dimensions\BelongsToDimension;
 use Luminix\Bi\Widgets\Table;
 
-// O model Pedido tem um relacionamento 'itens' com coluna 'valor'
-Table::create('valor-por-pedido', 'Valor por Pedido')
+Table::create('value-per-order', 'Valor por Pedido')
     ->dimension(
-        BelongsToDimension::create('cliente', 'Cliente')
-            ->relation('cliente')
-            ->otherColumn('nome')
+        BelongsToDimension::create('customer', 'Cliente')
+            ->relation('customer')
+            ->otherColumn('name')
     )
     ->metric(
-        SumManyMetric::create('itens_sum_valor', 'Valor Total')
+        SumManyMetric::create('items_sum_price', 'Valor Total')
             ->color('#FF5722')
     )
 ```
 
-Como `$key` é `itens_sum_valor` e contém `_sum_`, a relação `itens` e a coluna `valor` são inferidas automaticamente. A query resultante é equivalente a:
+Como `$key` é `items_sum_price`, a relação `items` e a coluna `price` são inferidas automaticamente.
 
-```sql
-SELECT `pedidos`.`id`, SUM(`itens`.`valor`) AS `itens_sum_valor`
-FROM `pedidos`
-LEFT JOIN `itens` ON `itens`.`pedido_id` = `pedidos`.`id`
-GROUP BY `pedidos`.`id`
-```
+## Exemplo com `->scope()`
 
-## Exemplo com Relação e Coluna Explícitas
-
-Quando o `$key` não segue o padrão `_sum_`, informe relação e coluna manualmente:
+Use `->scope(Closure)` para somar apenas um subconjunto dos registros relacionados:
 
 ```php
 use Luminix\Bi\Metrics\SumManyMetric;
 
-SumManyMetric::create('receita_bruta', 'Receita Bruta')
-    ->relation('linhasDePedido')
-    ->column('preco_unitario')
-    ->color('#4CAF50')
+SumManyMetric::create('items_sum_price', 'Valor de Itens Aprovados')
+    ->scope(fn ($query) => $query->where('status', 'approved'))
 ```
 
-SQL equivalente:
+O closure é passado diretamente para o `withSum()` do Eloquent, filtrando quais registros entram na soma.
 
-```sql
-SELECT `pedidos`.`id`, SUM(`linhas_de_pedido`.`preco_unitario`) AS `receita_bruta`
-FROM `pedidos`
-LEFT JOIN `linhas_de_pedido` ON `linhas_de_pedido`.`pedido_id` = `pedidos`.`id`
-GROUP BY `pedidos`.`id`
-```
-
-## Exemplo com Scope: Somar Apenas Itens Aprovados
-
-```php
-use Luminix\Bi\Metrics\SumManyMetric;
-
-SumManyMetric::create('itens_sum_valor', 'Valor Aprovado')
-    ->scope(fn ($query) => $query->where('status', 'aprovado'))
-```
-
-> Para que `SumManyMetric` funcione corretamente, o modelo base do dashboard precisa ter o relacionamento definido (ex: `public function itens(): HasMany`). A coluna informada em `->column()` deve existir no modelo relacionado — não no modelo principal.
+> A coluna informada (via convenção ou `->column()`) deve existir no model relacionado, não no model principal do dashboard.
 
 ## Próximos Passos
 

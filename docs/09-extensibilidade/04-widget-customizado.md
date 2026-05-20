@@ -1,70 +1,42 @@
-# Criando Widgets Customizados
+# Widgets Customizados
 
-Os quatro widgets incluídos no pacote — `BigNumber`, `LineChart`, `PartitionPie` e `Table` — cobrem os padrões mais comuns de visualização analítica. Quando a visualização desejada é radicalmente diferente — um funil de conversão, um mapa de calor, uma matrix de cohort, um gauge — você cria seu próprio widget estendendo `BaseWidget`.
+O pacote inclui `BigNumber`, `LineChart`, `PartitionPie` e `Table`. Quando a visualização desejada tem uma estrutura de dados diferente — um funil de conversão, um mapa de calor, um gauge — crie seu próprio widget estendendo `BaseWidget`.
 
-## Quando Criar um Widget Customizado
-
-Crie um widget customizado quando:
-
-- A estrutura de dados retornada pelo widget não é uma lista plana de objetos com métricas e dimensões
-- O método `data()` precisa executar múltiplas queries e combinar os resultados
-- O front-end precisa de metadados específicos no JSON do widget (etapas de funil, configurações de escala, paleta de cores calculada dinamicamente)
-- A lógica de transformação de dados antes de retornar ao front-end é complexa o suficiente para merecer sua própria classe
-
-## Estendendo `BaseWidget`
-
-`BaseWidget` implementa a interface `Widget` e o contrato `JsonSerializable`. Ao herdá-la, você recebe:
-
-| Recurso | Descrição |
-|---|---|
-| `scope(Closure $scope)` | Restringe a query base com uma closure |
-| `width($width)` | Define a largura do widget no grid |
-| `dimension()` / `dimensions()` | Fluent setters para dimensões (via trait `HasAttributes`) |
-| `metric()` / `metrics()` | Fluent setters para métricas (via trait `HasAttributes`) |
-| `getBaseBuilder(Dashboard $dashboard)` | Cria o `Builder` base a partir do model do dashboard |
-| `applyAttributes(Builder $builder)` | Aplica todos as métricas e dimensões registradas ao builder |
-| `applyFilters(Builder $builder, Dashboard $dashboard, BiRequest $request)` | Aplica os filtros enviados na requisição |
-| `displayModel($model, $rawModels)` | Converte um model Eloquent em `stdClass` usando o `display()` de cada atributo |
-| `create(string $key, string $name)` | Fábrica estática |
-
-## Campos e Métodos Obrigatórios
-
-### `$component` — Identificador do Componente Front-end
+## Contrato
 
 ```php
-protected $component = 'meu-widget';
-```
+namespace Luminix\Bi\Widgets;
 
-Esta propriedade é serializada no JSON do widget como `"component": "meu-widget"`. O front-end usa essa string para determinar qual componente Vue/React renderizar. Defina sempre.
-
-### `data()` — Retorna os Dados do Widget
-
-```php
-public function data(Dashboard $dashboard, BiRequest $request)
-```
-
-Este é o método que o controller chama ao receber uma requisição para `GET /bi-apis/{dashboard}/widgets/{widget}`. Ele deve retornar uma `Collection` ou um `array`. O retorno será serializado diretamente como o campo `data` da resposta JSON.
-
-### `extra()` — Metadados Adicionais (Opcional)
-
-```php
-protected function extra(): array
+interface Widget
 {
-    return [
-        'minha_configuracao' => $this->minhaConfiguracao,
-    ];
+    public function data(Dashboard $dashboard, BiRequest $request);
 }
 ```
 
-O retorno de `extra()` é incluído no campo `extra` da serialização JSON do widget (disponível no endpoint de listagem do dashboard). Use para enviar configurações que o componente front-end precisa para se configurar — cores, rótulos, limites de escala.
+`BaseWidget` implementa essa interface e fornece os seguintes recursos via trait `HasAttributes`:
 
-> Na implementação padrão de `BaseWidget`, `extra()` retorna `['uniqid' => uniqid()]`. Ao sobrescrever, você substitui esse comportamento completamente.
+| Método / Recurso | Descrição |
+|---|---|
+| `getBaseBuilder(Dashboard $dashboard)` | Cria o `Builder` base a partir do model do dashboard |
+| `applyAttributes(Builder $builder)` | Aplica métricas e dimensões registradas ao builder |
+| `applyFilters(Builder $builder, Dashboard $dashboard, BiRequest $request)` | Aplica os filtros enviados na requisição |
+| `displayModel($model, $rawModels)` | Converte um model Eloquent em `stdClass` via `display()` de cada atributo |
+| `dimension()` / `dimensions()` | Fluent setters para dimensões |
+| `metric()` / `metrics()` | Fluent setters para métricas |
+| `scope(Closure $scope)` | Restringe a query base |
+| `width($width)` | Define a largura no grid |
+| `create(string $key, string $name)` | Fábrica estática |
 
-## Exemplo Completo: `FunnelChart`
+Dois membros são obrigatórios ao criar um widget customizado:
 
-Um funil de conversão exibe etapas sequenciais onde cada etapa tem um volume de registros e um percentual de conversão em relação à etapa anterior.
+- **`$component`** — string serializada no JSON de configuração; o front-end usa esse valor para determinar qual componente renderizar
+- **`data()`** — retorna a `Collection` ou `array` que será o campo `data` da resposta JSON
 
-### A Classe
+O método `extra()` é opcional: sobrescreva-o para incluir metadados no campo `extra` da serialização do widget (disponível no endpoint de listagem do dashboard).
+
+## Exemplo Completo: `HeatMapWidget`
+
+Um widget que calcula o volume de pedidos por dia da semana e hora do dia, retornando uma matriz para o front-end renderizar um mapa de calor:
 
 ```php
 <?php
@@ -72,61 +44,49 @@ Um funil de conversão exibe etapas sequenciais onde cada etapa tem um volume de
 namespace App\Bi\Widgets;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Luminix\Bi\Dashboard;
 use Luminix\Bi\Support\BiRequest;
 use Luminix\Bi\Widgets\BaseWidget;
 
-class FunnelChart extends BaseWidget
+class HeatMapWidget extends BaseWidget
 {
-    protected $component = 'funnel-chart';
+    protected $component = 'heat-map';
 
-    /**
-     * Cada etapa é definida como ['label' => '...', 'scope' => fn($builder) => $builder].
-     */
-    private array $steps = [];
-
-    public function step(string $label, \Closure $scope): static
-    {
-        $this->steps[] = ['label' => $label, 'scope' => $scope];
-
-        return $this;
-    }
+    private array $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     public function data(Dashboard $dashboard, BiRequest $request): array
     {
-        $result    = [];
-        $previous  = null;
+        $builder = $this->getBaseBuilder($dashboard);
+        $builder = $this->applyFilters($builder, $dashboard, $request);
 
-        foreach ($this->steps as $step) {
-            // Parte do builder base do dashboard
-            $builder = $this->getBaseBuilder($dashboard);
+        $rows = $builder
+            ->select([
+                DB::raw('DAYOFWEEK(created_at) - 1 as day_of_week'),
+                DB::raw('HOUR(created_at) as hour'),
+                DB::raw('COUNT(*) as total'),
+            ])
+            ->groupBy('day_of_week', 'hour')
+            ->get();
 
-            // Aplica os filtros da requisição
-            $builder = $this->applyFilters($builder, $dashboard, $request);
+        $matrix = [];
 
-            // Aplica o escopo desta etapa
-            $builder = ($step['scope'])($builder);
-
-            $count = $builder->count();
-
-            $result[] = [
-                'label'      => $step['label'],
-                'count'      => $count,
-                'conversion' => $previous > 0
-                    ? round($count / $previous * 100, 2)
-                    : 100.0,
+        foreach ($rows as $row) {
+            $matrix[] = [
+                'day'   => $this->days[$row->day_of_week],
+                'hour'  => (int) $row->hour,
+                'total' => (int) $row->total,
             ];
-
-            $previous = $count;
         }
 
-        return $result;
+        return $matrix;
     }
 
     protected function extra(): array
     {
         return [
-            'steps' => array_column($this->steps, 'label'),
+            'days'  => $this->days,
+            'hours' => range(0, 23),
         ];
     }
 }
@@ -135,71 +95,61 @@ class FunnelChart extends BaseWidget
 ### Usando no Dashboard
 
 ```php
-use App\Bi\Widgets\FunnelChart;
+use App\Bi\Widgets\HeatMapWidget;
 use Luminix\Bi\Filters\DateIntervalFilter;
 use Carbon\Carbon;
 
-// No método widgets() do dashboard:
-FunnelChart::create('funil-checkout', 'Funil de Checkout')
-    ->step('Visitaram o carrinho', function ($builder) {
-        return $builder->where('evento', 'carrinho');
-    })
-    ->step('Iniciaram o checkout', function ($builder) {
-        return $builder->where('evento', 'checkout_inicio');
-    })
-    ->step('Concluíram a compra', function ($builder) {
-        return $builder->where('evento', 'compra_concluida');
-    })
-    ->width(12);
+public function widgets(): array
+{
+    return [
+        HeatMapWidget::create('orders-heatmap', 'Orders by Day & Hour')
+            ->width(12),
+    ];
+}
 ```
 
-### Resposta JSON Gerada
+### Resposta JSON
 
 ```json
 {
     "status": 200,
     "data": [
-        { "label": "Visitaram o carrinho",    "count": 1200, "conversion": 100.0 },
-        { "label": "Iniciaram o checkout",    "count":  480, "conversion":  40.0 },
-        { "label": "Concluíram a compra",     "count":  192, "conversion":  40.0 }
+        { "day": "Mon", "hour": 9,  "total": 42 },
+        { "day": "Mon", "hour": 10, "total": 67 },
+        { "day": "Tue", "hour": 9,  "total": 38 }
     ]
 }
 ```
 
-E a serialização do widget no endpoint de listagem:
+Serialização do widget no endpoint de configuração:
 
 ```json
 {
-    "key":        "funil-checkout",
-    "name":       "Funil de Checkout",
-    "component":  "funnel-chart",
+    "key":        "orders-heatmap",
+    "name":       "Orders by Day & Hour",
+    "component":  "heat-map",
     "width":      12,
     "metrics":    [],
     "dimensions": [],
     "extra": {
-        "steps": [
-            "Visitaram o carrinho",
-            "Iniciaram o checkout",
-            "Concluíram a compra"
-        ]
+        "days":  ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        "hours": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     }
 }
 ```
 
-## Usando Métricas e Dimensões em um Widget Customizado
+## Usando Métricas e Dimensões em Widgets Customizados
 
-O `HasAttributes` já está incluído em `BaseWidget`. Você pode usar `dimension()`, `dimensions()`, `metric()` e `metrics()` normalmente no widget customizado, e chamar `applyAttributes()` dentro do `data()` para que o builder receba os `addSelect()` correspondentes:
+Se o widget aceita métricas e dimensões configuradas pelo desenvolvedor, use `applyAttributes()` dentro de `data()`:
 
 ```php
-public function data(Dashboard $dashboard, BiRequest $request)
+public function data(Dashboard $dashboard, BiRequest $request): Collection
 {
     $builder = $this->getBaseBuilder($dashboard);
-    $builder = $this->applyAttributes($builder); // aplica métricas e dimensões
+    $builder = $this->applyAttributes($builder);
     $builder = $this->applyFilters($builder, $dashboard, $request);
 
     $rawModels = $builder->get();
-
-    // Transformações customizadas aqui...
 
     return $rawModels->map(function ($model) use ($rawModels) {
         return $this->displayModel($model, $rawModels->toArray());
@@ -207,8 +157,8 @@ public function data(Dashboard $dashboard, BiRequest $request)
 }
 ```
 
-> Se o seu widget customizado não usa métricas nem dimensões (como o `FunnelChart` acima), não é necessário chamar `applyAttributes()`.
+Widgets que executam suas próprias queries (como o `HeatMapWidget` acima) não precisam chamar `applyAttributes()`.
 
 ## Próximos Passos
 
-[← Criando Filtros Customizados](03-filtro-customizado.md) | [→ Endpoints Disponíveis](../10-api/01-endpoints.md)
+[← Filtros Customizados](03-filtro-customizado.md) | [→ Endpoints da API](../10-api/01-endpoints.md)

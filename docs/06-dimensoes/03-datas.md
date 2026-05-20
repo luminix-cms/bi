@@ -1,100 +1,28 @@
-# DayDimension, MonthDimension e YearDimension
+# Dimensões de Data
 
-As dimensões de data agrupam registros por período temporal — dia, mês ou ano. Pense nelas como a "escala" de um gráfico de linha no eixo do tempo: você escolhe o nível de granularidade que faz sentido para a análise, e o pacote cuida da formatação SQL e da integração com o `LineChart`.
+`DayDimension`, `MonthDimension` e `YearDimension` agrupam registros por período temporal. Escolha o nível de granularidade adequado à análise — o pacote cuida da formatação SQL e da integração com o `LineChart`.
 
-## A Classe Base `DateDimension`
+## Quando Usar Cada Uma
 
-`DayDimension`, `MonthDimension` e `YearDimension` são subclasses de `DateDimension`, que por sua vez estende `BaseDimension`. A classe `DateDimension` define o comportamento central:
+| Dimensão | Formato de saída | Quando usar |
+|---|---|---|
+| `DayDimension` | `'2024-03-15'` | Análises de curto prazo (dias, semanas) |
+| `MonthDimension` | `'2024-03'` | Análises mensais, tendências de médio prazo |
+| `YearDimension` | `'2024'` | Visão anual, comparativos entre anos |
 
-1. Usa `DATE_FORMAT(column, 'formato')` no `SELECT` para converter a coluna de data em uma string de agrupamento
-2. Usa o mesmo `DATE_FORMAT` no `GROUP BY`
-3. Sobrescreve `display()` para usar `getRawOriginal()` — impedindo que o Eloquent converta a string para `Carbon`
-
-Cada subclasse configura o formato SQL específico e os metadados Carbon usados pelo `LineChart`:
-
-```php
-// Internamente, DayDimension configura:
-$this->sqlFormat   = '%Y-%m-%d';
-$this->carbonFormat = 'Y-m-d';
-// e os métodos Carbon: startOfDay / endOfDay
-```
-
-## SQL Gerado por Cada Dimensão
-
-### DayDimension
-
-```sql
-SELECT DATE_FORMAT(`created_at`, '%Y-%m-%d') AS `dia`, SUM(`valor`) AS `total`
-FROM `pedidos`
-GROUP BY DATE_FORMAT(`created_at`, '%Y-%m-%d')
-```
-
-Valor produzido: `'2024-03-15'`
-
-### MonthDimension
-
-```sql
-SELECT DATE_FORMAT(`created_at`, '%Y-%m') AS `mes`, SUM(`valor`) AS `total`
-FROM `pedidos`
-GROUP BY DATE_FORMAT(`created_at`, '%Y-%m')
-```
-
-Valor produzido: `'2024-03'`
-
-### YearDimension
-
-```sql
-SELECT DATE_FORMAT(`created_at`, '%Y') AS `ano`, SUM(`valor`) AS `total`
-FROM `pedidos`
-GROUP BY DATE_FORMAT(`created_at`, '%Y')
-```
-
-Valor produzido: `'2024'`
-
-## Por que `display()` Usa `getRawOriginal()`
-
-O Eloquent converte automaticamente colunas declaradas em `$casts` com tipo `datetime` para instâncias de `Carbon`. Quando a query retorna uma string como `'2024-03'` na coluna `mes`, o Eloquent poderia tentar interpolar essa string para um objeto `Carbon`, alterando ou falhando na conversão.
-
-`DateDimension` sobrescreve `display()` para usar `getRawOriginal($key)`, que retorna o valor exatamente como chegou do banco de dados — sem passar pelo sistema de casts do Eloquent. Isso garante que a string `'2024-03'` seja retornada intacta no JSON.
-
-## Tabela Comparativa
-
-| Dimensão | Formato SQL | Exemplo de saída | Carbon format | Carbon interval | Funções Carbon |
-|---|---|---|---|---|---|
-| `DayDimension` | `%Y-%m-%d` | `'2024-03-15'` | `'Y-m-d'` | `day` | `startOfDay` / `endOfDay` |
-| `MonthDimension` | `%Y-%m` | `'2024-03'` | `'Y-m'` | `month` | `startOfMonth` / `endOfMonth` |
-| `YearDimension` | `%Y` | `'2024'` | `'Y'` | `year` | `startOfYear` / `endOfYear` |
-
-## Integração com `LineChart`
-
-O widget `LineChart` usa os metadados da dimensão de data para interpolar períodos ausentes. Quando não há registros em um determinado dia, mês ou ano dentro do intervalo analisado, o `LineChart` insere o valor vazio (`0`, retornado por `getEmptyValue()`) para manter a continuidade da série temporal.
-
-Para isso, o `LineChart` acessa as propriedades expostas pela dimensão:
-
-- `carbonFormat`: formato para parsear/formatar datas com Carbon
-- `carbonInterval`: unidade de incremento (`day`, `month`, `year`)
-- `carbonStartFunction` / `carbonEndFunction`: funções Carbon para calcular início e fim de cada período
-
-Esses metadados são consumidos internamente pelo `LineChart` — você não precisa configurá-los manualmente. Basta usar a dimensão de data adequada ao nível de granularidade desejado.
-
-## O Método `->column()`
-
-Por padrão, as dimensões de data usam a coluna `created_at`. Para usar outra coluna de data, aplique `->column()`:
+## Uso
 
 ```php
-use Luminix\Bi\Dimensions\MonthDimension;
+DayDimension::create($key, $name)
+MonthDimension::create($key, $name)
+YearDimension::create($key, $name)
+```
 
-// Agrupar por data de atualização, e não por data de criação
-MonthDimension::create('mes_atualizacao', 'Mês de Atualização')
+Por padrão, as três dimensões usam a coluna `created_at`. Para usar outra coluna de data, aplique `->column()`:
+
+```php
+MonthDimension::create('updated_month', 'Mês de Atualização')
     ->column('updated_at')
-```
-
-SQL gerado:
-
-```sql
-SELECT DATE_FORMAT(`updated_at`, '%Y-%m') AS `mes_atualizacao`
-...
-GROUP BY DATE_FORMAT(`updated_at`, '%Y-%m')
 ```
 
 ## Exemplo: Receita Mensal em um LineChart
@@ -104,29 +32,35 @@ use Luminix\Bi\Dimensions\MonthDimension;
 use Luminix\Bi\Metrics\SumMetric;
 use Luminix\Bi\Widgets\LineChart;
 
-LineChart::create('receita-mensal', 'Receita Mensal')
+LineChart::create('monthly-revenue', 'Receita Mensal')
     ->dimension(
-        MonthDimension::create('mes', 'Mês')
+        MonthDimension::create('month', 'Mês')
     )
     ->metric(
-        SumMetric::create('receita', 'Receita Total')
-            ->column('valor_pedido')
+        SumMetric::create('revenue', 'Receita Total', 'total_amount')
             ->color('#2196F3')
     )
 ```
 
-A query gerada é equivalente a:
+Resposta JSON (trecho):
 
-```sql
-SELECT DATE_FORMAT(`created_at`, '%Y-%m') AS `mes`, SUM(`valor_pedido`) AS `receita`
-FROM `pedidos`
-GROUP BY DATE_FORMAT(`created_at`, '%Y-%m')
-ORDER BY `mes` ASC
+```json
+[
+  { "month": "2024-01", "revenue": 98500.00 },
+  { "month": "2024-02", "revenue": 0         },
+  { "month": "2024-03", "revenue": 125000.50 }
+]
 ```
 
-O `LineChart` recebe o resultado e, se o intervalo analisado inclui meses sem pedidos (por exemplo, `2024-02` sem registros), insere automaticamente `{ "mes": "2024-02", "receita": 0 }` na série para manter a continuidade do gráfico.
+O `LineChart` inseriu `{ "month": "2024-02", "revenue": 0 }` porque não havia pedidos naquele mês — mantendo a continuidade da série temporal.
 
-> `LineChart` requer exatamente uma dimensão de data. Usar `StringDimension` ou `BelongsToDimension` com `LineChart` não produzirá interpolação de períodos ausentes.
+## Interpolação de Períodos Ausentes no LineChart
+
+O `LineChart` usa os metadados das dimensões de data para preencher automaticamente os períodos sem registros. Cada dimensão define internamente o formato Carbon correspondente e a unidade de incremento (`day`, `month` ou `year`) — o `LineChart` itera sobre o intervalo completo e insere o valor vazio (`0`) onde não há dados.
+
+Esse comportamento é automático: basta usar a dimensão de data adequada. `StringDimension` e `BelongsToDimension` não produzem interpolação no `LineChart`.
+
+Para mais detalhes sobre o `LineChart`, consulte [LineChart](../04-widgets/04-line-chart.md).
 
 ## Próximos Passos
 

@@ -9,7 +9,10 @@
 
 - [2.1 Instalação](02-instalacao/01-instalacao.md)
 - [2.2 Configuração](02-instalacao/02-configuracao.md)
-- [2.3 Rotas da API](02-instalacao/03-rotas.md)
+
+## Guia de Uso Básico
+
+- [Uso Básico — do primeiro dashboard ao nível intermediário](uso-basico.md)
 
 ## 3. Dashboards
 

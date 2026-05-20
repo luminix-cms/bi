@@ -1,103 +1,86 @@
 # CountManyMetric
 
-`CountManyMetric` conta os registros de um relacionamento Eloquent, em vez de contar as linhas do modelo principal. Pense nela como a resposta para "quantos itens cada X tem?": quantos itens cada pedido contém, quantos comentários cada post recebeu, quantos endereços cada cliente cadastrou.
+`CountManyMetric` conta os registros de um relacionamento Eloquent, em vez de contar as linhas do modelo principal. É a resposta para "quantos itens cada X tem?": quantos itens cada pedido contém, quantos comentários cada post recebeu, quantos endereços cada cliente cadastrou.
 
-## Propósito
+Internamente, usa o método `withCount()` do Eloquent — sem necessidade de join manual.
 
-Enquanto `CountMetric` executa `COUNT(*)` sobre o modelo principal da query, `CountManyMetric` usa o método `withCount()` do Eloquent para contar registros em um relacionamento. O resultado é uma coluna adicionada ao modelo via eager loading, sem necessidade de join manual.
+## Convenção de Nomeação do `$key`
 
-Internamente, `CountManyMetric` usa `withCount()` e `groupBy($model->getKeyName())` para garantir que cada linha do resultado corresponda a um registro distinto do modelo principal.
+O `$key` deve seguir o padrão `{relation}_count`, onde `{relation}` é o nome do método de relacionamento no model. O pacote infere automaticamente o nome da relação removendo o sufixo `_count`:
 
-## Inferência Automática de Relação
-
-Quando o `$key` termina com o sufixo `_count`, o pacote infere automaticamente o nome da relação a partir da parte anterior:
-
-```php
-// 'itens_count' → relação inferida: 'itens'
-CountManyMetric::create('itens_count', 'Quantidade de Itens')
+```
+'items_count'    → relação inferida: 'items'
+'comments_count' → relação inferida: 'comments'
 ```
 
-Se o nome da relação difere do padrão inferido, use `->relation()`:
-
 ```php
-// key 'produtos' não termina em '_count', portanto a relação deve ser explícita
-CountManyMetric::create('produtos', 'Itens do Pedido')
-    ->relation('itensDoPedido')
+// Relação inferida automaticamente como 'items'
+CountManyMetric::create('items_count', 'Quantidade de Itens')
 ```
 
-## O Método `->scope()`
-
-O método `->scope(Closure)` permite adicionar condições à query de contagem do relacionamento. Isso é útil quando você quer contar apenas um subconjunto dos registros relacionados:
+Se o `$key` não terminar em `_count`, informe a relação com `->relation()`:
 
 ```php
-CountManyMetric::create('itens_ativos_count', 'Itens Ativos')
-    ->scope(fn ($query) => $query->where('ativo', true))
+CountManyMetric::create('total_items', 'Quantidade de Itens')
+    ->relation('items')
 ```
 
-Internamente, o pacote passa esse closure para o `withCount()` do Eloquent:
+## Uso
 
 ```php
-$builder->withCount([
-    'itens as itens_ativos_count' => fn ($query) => $query->where('ativo', true)
-]);
+CountManyMetric::create($key, $name)
 ```
 
-## Exemplo Simples
+## Exemplo: Quantidade de Itens por Pedido
 
-O exemplo a seguir conta quantos itens cada pedido possui:
+O model `Order` possui um relacionamento `items`:
+
+```php
+// App\Models\Order
+public function items(): HasMany
+{
+    return $this->hasMany(Item::class);
+}
+```
 
 ```php
 use Luminix\Bi\Metrics\CountManyMetric;
 use Luminix\Bi\Dimensions\BelongsToDimension;
 use Luminix\Bi\Widgets\Table;
 
-// O Pedido tem um relacionamento 'itens' definido no model
-Table::create('itens-por-pedido', 'Itens por Pedido')
+Table::create('items-per-order', 'Itens por Pedido')
     ->dimension(
-        BelongsToDimension::create('cliente', 'Cliente')
-            ->relation('cliente')
-            ->otherColumn('nome')
+        BelongsToDimension::create('customer', 'Cliente')
+            ->relation('customer')
+            ->otherColumn('name')
     )
     ->metric(
-        CountManyMetric::create('itens_count', 'Quantidade de Itens')
+        CountManyMetric::create('items_count', 'Qtd. de Itens')
     )
 ```
 
-Como `$key` é `itens_count` e termina em `_count`, a relação `itens` é inferida automaticamente. A query resultante é equivalente a:
+Como `$key` é `items_count`, a relação `items` é inferida automaticamente.
 
-```sql
-SELECT `pedidos`.`id`, COUNT(`itens`.`id`) AS `itens_count`
-FROM `pedidos`
-LEFT JOIN `itens` ON `itens`.`pedido_id` = `pedidos`.`id`
-GROUP BY `pedidos`.`id`
-```
+## Exemplo com `->scope()`
 
-## Exemplo com Relação Explícita e Scope
-
-Para contar apenas os itens com `status = 'ativo'` de cada pedido, com relação definida explicitamente:
+Use `->scope(Closure)` para contar apenas um subconjunto dos registros relacionados:
 
 ```php
 use Luminix\Bi\Metrics\CountManyMetric;
-use Luminix\Bi\Widgets\BigNumber;
 
-// Pedido tem relacionamento 'linhasAtivas' com escopo de status
-CountManyMetric::create('itens_ativos_count', 'Itens Ativos')
-    ->relation('itens')
-    ->scope(fn ($query) => $query->where('status', 'ativo'))
+CountManyMetric::create('active_items_count', 'Itens Ativos')
+    ->scope(fn ($query) => $query->where('status', 'active'))
 ```
 
-## Diferença em Relação a `CountMetric`
+O closure é passado diretamente para o `withCount()` do Eloquent, filtrando quais registros relacionados entram na contagem.
 
-| Situação | Métrica correta |
+## `CountManyMetric` vs `CountMetric`
+
+| Pergunta | Métrica correta |
 |---|---|
-| Quantos pedidos existem? | `CountMetric` |
+| Quantos pedidos existem por status? | `CountMetric` |
 | Quantos itens cada pedido tem? | `CountManyMetric` |
-| Quantos comentários cada post recebeu? | `CountManyMetric` |
 | Quantos usuários se cadastraram por dia? | `CountMetric` com `DayDimension` |
-
-`CountMetric` conta linhas do modelo base da query. `CountManyMetric` conta linhas de uma relação desse modelo.
-
-> Para que `CountManyMetric` funcione corretamente, o modelo base do dashboard precisa ter o relacionamento definido com o método correspondente (ex: `public function itens(): HasMany`). O Eloquent resolve a query do relacionamento automaticamente.
 
 ## Próximos Passos
 

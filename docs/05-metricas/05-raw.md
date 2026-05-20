@@ -1,37 +1,23 @@
 # RawMetric
 
-`RawMetric` é a válvula de escape das métricas: quando nenhuma das métricas prontas atende ao caso de uso, você escreve a expressão SQL diretamente. Pense nela como uma calculadora livre — você define a fórmula, e o pacote cuida do alias e de encaixá-la na query.
+`RawMetric` é usada quando nenhuma das métricas prontas atende ao caso de uso. Você escreve a expressão SQL diretamente, e o pacote cuida de encaixá-la no `SELECT` com o alias correto.
 
-## Propósito
+## Quando Usar
 
-As métricas `CountMetric`, `SumMetric` e `AverageMetric` cobrem os casos mais comuns, mas análises reais frequentemente exigem combinações: margem de lucro, taxa de conversão, proporções, valores condicionais. `RawMetric` permite expressar qualquer dessas situações como SQL puro.
+Use `RawMetric` para lógicas que `CountMetric`, `SumMetric` e `AverageMetric` não cobrem:
 
-## O Método `->raw()`
+- Margem de lucro: `(SUM(revenue) - SUM(cost)) / SUM(revenue) * 100`
+- Taxa de conversão: `SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) / COUNT(*) * 100`
+- Média com tratamento de nulos: `AVG(COALESCE(rating, 0))`
+- Arredondamento: `ROUND(AVG(total_amount), 2)`
 
-O método `->raw('expressão SQL')` recebe uma string SQL que será inserida diretamente no `SELECT`. O alias (`AS \`key\``) é adicionado automaticamente pelo pacote:
+## Uso
 
 ```php
-use Luminix\Bi\Metrics\RawMetric;
-
-RawMetric::create('margem', 'Margem de Lucro')
-    ->raw('(SUM(receita) - SUM(custo)) / SUM(receita) * 100')
+RawMetric::create($key, $name, $raw)
 ```
 
-SQL gerado:
-
-```sql
-SELECT (SUM(receita) - SUM(custo)) / SUM(receita) * 100 AS `margem`
-```
-
-A expressão passada para `->raw()` pode conter qualquer função SQL suportada pelo banco de dados: funções matemáticas, de string, condicionais, subqueries escalares, etc.
-
-## Casos de Uso
-
-- **Margem de lucro**: `(SUM(receita) - SUM(custo)) / SUM(receita) * 100`
-- **Taxa de aprovação**: `SUM(CASE WHEN status = 'aprovado' THEN 1 ELSE 0 END) / COUNT(*) * 100`
-- **Valor com arredondamento**: `ROUND(AVG(valor_pedido), 2)`
-- **Tratamento de nulos**: `AVG(COALESCE(avaliacao, 0))`
-- **Percentual calculado no banco**: `SUM(desconto) / SUM(valor_bruto) * 100`
+O terceiro parâmetro `$raw` é a expressão SQL que será inserida diretamente no `SELECT`. O alias `AS \`key\`` é adicionado automaticamente.
 
 ## Exemplo: Margem de Lucro por Categoria
 
@@ -40,28 +26,20 @@ use Luminix\Bi\Metrics\RawMetric;
 use Luminix\Bi\Dimensions\StringDimension;
 use Luminix\Bi\Widgets\Table;
 
-Table::create('margem-por-categoria', 'Margem por Categoria')
+Table::create('margin-by-category', 'Margem por Categoria')
     ->dimension(
-        StringDimension::create('categoria', 'Categoria')
+        StringDimension::create('category', 'Categoria')
     )
     ->metric(
-        RawMetric::create('margem', 'Margem (%)')
-            ->raw('ROUND((SUM(receita) - SUM(custo)) / NULLIF(SUM(receita), 0) * 100, 2)')
-            ->color('#E91E63')
+        RawMetric::create(
+            'margin',
+            'Margem (%)',
+            'ROUND((SUM(revenue) - SUM(cost)) / NULLIF(SUM(revenue), 0) * 100, 2)'
+        )->color('#E91E63')
     )
 ```
 
-A query gerada é equivalente a:
-
-```sql
-SELECT
-    `categoria` AS `categoria`,
-    ROUND((SUM(receita) - SUM(custo)) / NULLIF(SUM(receita), 0) * 100, 2) AS `margem`
-FROM `produtos`
-GROUP BY `categoria`
-```
-
-> O uso de `NULLIF(SUM(receita), 0)` evita divisão por zero quando a receita de um grupo é zero. Sem essa proteção, o MySQL retornaria `NULL` nesse caso, e não um erro — mas é uma boa prática explicitá-la.
+O `NULLIF(SUM(revenue), 0)` evita divisão por zero quando a receita de um grupo é zero.
 
 ## Exemplo: Taxa de Aprovação por Vendedor
 
@@ -70,27 +48,22 @@ use Luminix\Bi\Metrics\RawMetric;
 use Luminix\Bi\Dimensions\StringDimension;
 use Luminix\Bi\Widgets\Table;
 
-Table::create('aprovacao-por-vendedor', 'Taxa de Aprovação por Vendedor')
+Table::create('approval-rate-by-seller', 'Taxa de Aprovação por Vendedor')
     ->dimension(
-        StringDimension::create('vendedor', 'Vendedor')
+        StringDimension::create('seller', 'Vendedor')
     )
     ->metric(
-        RawMetric::create('taxa_aprovacao', 'Taxa de Aprovação (%)')
-            ->raw('ROUND(SUM(CASE WHEN status = \'aprovado\' THEN 1 ELSE 0 END) / COUNT(*) * 100, 1)')
+        RawMetric::create(
+            'approval_rate',
+            'Taxa de Aprovação (%)',
+            "ROUND(SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) / COUNT(*) * 100, 1)"
+        )
     )
 ```
 
 ## Aviso de Segurança
 
-A expressão passada para `->raw()` é inserida diretamente no SQL sem nenhum tipo de escape ou parametrização. Nunca construa essa expressão a partir de dados enviados pelo usuário:
-
-```php
-// NUNCA faca isso — vulnerabilidade de SQL injection
-RawMetric::create('valor', 'Valor')
-    ->raw($request->input('formula'))
-```
-
-A expressão deve ser sempre uma string literal definida no código-fonte, escrita pelo desenvolvedor. Se precisar de dinamismo, use construtores condicionais em PHP antes de passar a string final para `->raw()`.
+A expressão passada como `$raw` é inserida diretamente no SQL sem escape ou parametrização. Nunca construa essa string a partir de dados enviados pelo usuário — isso cria uma vulnerabilidade de SQL injection. A expressão deve ser sempre uma string literal definida no código-fonte.
 
 ## Próximos Passos
 

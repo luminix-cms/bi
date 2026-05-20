@@ -1,91 +1,45 @@
 # AverageMetric
 
-`AverageMetric` calcula a média aritmética dos valores de uma coluna numérica para cada grupo de registros. Pense nela como a resposta para "quanto em média?": qual o ticket médio por categoria, quanto tempo em média demora um atendimento, qual a avaliação média dos produtos.
+`AverageMetric` calcula a média aritmética dos valores de uma coluna numérica para cada grupo de registros. É a resposta para "quanto em média?": qual o ticket médio por categoria, qual a avaliação média dos produtos por fornecedor, quanto tempo em média demora um atendimento.
 
-## SQL Gerado
-
-`AverageMetric` adiciona ao `SELECT` a expressão `AVG(column)`, aliasada com o valor de `$key`:
-
-```sql
-SELECT AVG(`valor_pedido`) AS `ticket_medio`
-```
-
-Assim como em `SumMetric`, a coluna usada na função `AVG` é determinada por `$column`. Por padrão, `$column` é igual a `$key`. Use `->column()` quando eles diferirem.
-
-## O Método `->column()`
-
-`->column()` é necessário quando o nome da métrica no JSON difere do nome da coluna no banco:
+## Uso
 
 ```php
-use Luminix\Bi\Metrics\AverageMetric;
-
-AverageMetric::create('ticket_medio', 'Ticket Médio')
-    ->column('valor_pedido')
+AverageMetric::create($key, $name, $column)
 ```
 
-SQL gerado:
+O terceiro parâmetro `$column` é a coluna do banco sobre a qual a média é calculada. Assim como em `SumMetric`, prefira sempre informá-lo explicitamente.
 
-```sql
-SELECT AVG(`valor_pedido`) AS `ticket_medio`
-```
-
-## Casos de Uso
-
-- Ticket médio por categoria de produto
-- Tempo médio de atendimento por operador
-- Avaliação média de produtos por fornecedor
-- Idade média de clientes por região
-- Prazo médio de entrega por transportadora
-
-## Exemplo: Ticket Médio por Categoria de Produto
+## Exemplo: Ticket Médio por Categoria
 
 ```php
 use Luminix\Bi\Metrics\AverageMetric;
 use Luminix\Bi\Dimensions\StringDimension;
 use Luminix\Bi\Widgets\Table;
 
-Table::create('ticket-por-categoria', 'Ticket Médio por Categoria')
+Table::create('avg-ticket-by-category', 'Ticket Médio por Categoria')
     ->dimension(
-        StringDimension::create('categoria', 'Categoria')
+        StringDimension::create('category', 'Categoria')
     )
     ->metric(
-        AverageMetric::create('ticket_medio', 'Ticket Médio')
-            ->column('valor_pedido')
+        AverageMetric::create('avg_ticket', 'Ticket Médio', 'total_amount')
             ->color('#9C27B0')
     )
 ```
 
-A query gerada é equivalente a:
-
-```sql
-SELECT `categoria` AS `categoria`, AVG(`valor_pedido`) AS `ticket_medio`
-FROM `pedidos`
-GROUP BY `categoria`
-```
-
-A resposta JSON conterá linhas como:
+Resposta JSON:
 
 ```json
 [
-  { "categoria": "Eletrônicos", "ticket_medio": 879.99 },
-  { "categoria": "Roupas",      "ticket_medio": 145.50 },
-  { "categoria": "Livros",      "ticket_medio": 52.30  }
+  { "category": "Electronics", "avg_ticket": 879.99 },
+  { "category": "Clothing",    "avg_ticket": 145.50 },
+  { "category": "Books",       "avg_ticket": 52.30  }
 ]
 ```
 
-## Atenção: Comportamento com Valores `NULL`
+## Atenção: Valores `NULL`
 
-A função `AVG` do MySQL ignora registros com valor `NULL` na coluna sendo calculada. Isso significa que se parte dos registros tiver o campo nulo, eles não entrarão no cálculo — nem no numerador nem no denominador da média.
-
-Esse comportamento pode produzir resultados inesperados dependendo do contexto:
-
-```sql
--- Tabela com 3 registros: 100, NULL, 200
-SELECT AVG(valor) FROM tabela;
--- Resultado: 150 (calculado como (100 + 200) / 2, não como (100 + 0 + 200) / 3)
-```
-
-> Se a coluna pode conter `NULL` e você precisa que esses registros sejam tratados como zero, use `RawMetric` com `AVG(COALESCE(coluna, 0))` em vez de `AverageMetric`.
+A função `AVG` do MySQL ignora registros com valor `NULL` na coluna calculada — eles não entram nem no numerador nem no denominador. Se a coluna pode conter `NULL` e você precisa que esses registros sejam tratados como zero, use `RawMetric` com `AVG(COALESCE(column, 0))`.
 
 ## Próximos Passos
 

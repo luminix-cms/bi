@@ -1,38 +1,23 @@
 # CountMetric
 
-`CountMetric` é a métrica mais simples do pacote: conta quantos registros existem em cada grupo definido pela dimensão. Pense nela como a resposta para "quantos?": quantos pedidos foram feitos, quantos usuários se cadastraram, quantos eventos ocorreram.
+`CountMetric` conta quantos registros existem em cada grupo definido pela dimensão. É a métrica mais simples e a resposta para "quantos?": quantos pedidos foram feitos, quantos usuários se cadastraram por mês, quantos eventos ocorreram por categoria.
 
-## SQL Gerado
+## Uso
 
-`CountMetric` adiciona ao `SELECT` a expressão `COUNT(*)`, aliasada com o valor de `$key`:
-
-```sql
-SELECT COUNT(*) AS `total`
+```php
+CountMetric::create($key, $name)
 ```
 
-A expressão `COUNT(*)` conta todas as linhas do grupo, independentemente de valores nulos em colunas específicas. Por isso, `CountMetric` não depende do método `->column()` — não há coluna a ser especificada.
+`CountMetric` não opera sobre nenhuma coluna específica — `COUNT(*)` conta todas as linhas do grupo. O método `->column()` não tem efeito e pode ser omitido.
 
-## Não Requer `->column()`
-
-Ao contrário de `SumMetric` e `AverageMetric`, `CountMetric` não opera sobre nenhuma coluna específica. A chamada a `->column()` não tem efeito e pode ser omitida com segurança.
-
-## Casos de Uso
-
-- Número de pedidos por status
-- Número de usuários cadastrados por mês
-- Número de eventos por categoria
-- Número de transações por tipo de pagamento
-
-## Exemplo Simples
-
-O exemplo a seguir conta o total de pedidos agrupados por status:
+## Exemplo: Pedidos por Status
 
 ```php
 use Luminix\Bi\Metrics\CountMetric;
 use Luminix\Bi\Dimensions\StringDimension;
 use Luminix\Bi\Widgets\Table;
 
-Table::create('pedidos-por-status', 'Pedidos por Status')
+Table::create('orders-by-status', 'Pedidos por Status')
     ->dimension(
         StringDimension::create('status', 'Status')
     )
@@ -42,52 +27,34 @@ Table::create('pedidos-por-status', 'Pedidos por Status')
     )
 ```
 
-A query gerada é equivalente a:
-
-```sql
-SELECT `status` AS `status`, COUNT(*) AS `total`
-FROM `pedidos`
-GROUP BY `status`
-```
-
-A resposta JSON conterá linhas como:
+Resposta JSON:
 
 ```json
 [
-  { "status": "aprovado", "total": 142 },
-  { "status": "pendente", "total": 58 },
-  { "status": "cancelado", "total": 21 }
+  { "status": "approved", "total": 142 },
+  { "status": "pending",  "total": 58  },
+  { "status": "canceled", "total": 21  }
 ]
 ```
 
 ## Exemplo com `->asPercentage()`
 
-Para exibir a participação percentual de cada status no total de pedidos:
+Para exibir a participação percentual de cada status no total:
 
 ```php
-use Luminix\Bi\Metrics\CountMetric;
-use Luminix\Bi\Dimensions\StringDimension;
-use Luminix\Bi\Widgets\Table;
-
-Table::create('pedidos-por-status', 'Pedidos por Status')
-    ->dimension(
-        StringDimension::create('status', 'Status')
-    )
-    ->metric(
-        CountMetric::create('total', 'Participação')
-            ->asPercentage()
-    )
+CountMetric::create('total', 'Participação')
+    ->asPercentage()
 ```
 
-O SQL executado é o mesmo — apenas a exibição do valor muda. Se o resultado retornar `142`, `58` e `21` registros (total: 221), a saída formatada será `64.25%`, `26.24%` e `9.50%` respectivamente.
+Com os valores `142`, `58` e `21` (total: 221), a exibição será `64.25%`, `26.24%` e `9.50%`. O SQL não muda — apenas a exibição.
 
-## Diferença em Relação a `CountManyMetric`
+## `CountMetric` vs `CountManyMetric`
 
-`CountMetric` conta as linhas do **modelo principal** da query. Se o dashboard é baseado no model `Pedido`, `CountMetric` conta pedidos.
+`CountMetric` conta linhas do modelo principal da query. Se o dashboard é baseado em `Order`, ele conta pedidos.
 
-`CountManyMetric`, por outro lado, conta os registros de um **relacionamento** do modelo principal. Por exemplo, para contar quantos itens cada pedido tem, seria necessário usar `CountManyMetric` com a relação `itens` — não `CountMetric`.
+`CountManyMetric` conta registros de um relacionamento. Para saber quantos itens cada pedido possui, use `CountManyMetric` com a relação `items`.
 
-| Situação | Métrica correta |
+| Pergunta | Métrica correta |
 |---|---|
 | Quantos pedidos existem por status? | `CountMetric` |
 | Quantos itens cada pedido tem? | `CountManyMetric` |

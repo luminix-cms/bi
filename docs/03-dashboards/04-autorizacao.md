@@ -1,122 +1,77 @@
 # Autorização
 
-Imagine que o sistema tem um dashboard financeiro com dados sensíveis de margem de lucro. Ele não deve aparecer para analistas de operações — mas também não deve retornar um erro `403` quando eles navegam pela interface. O comportamento correto é que esse dashboard simplesmente não exista para eles. É exatamente isso que o método `viewable()` faz.
+O método `viewable()` controla se um dashboard deve ser incluído na listagem retornada pela API. Quando retorna `false`, o dashboard simplesmente não existe para o usuário — não há resposta `403`. Esse comportamento de ocultação é mais seguro do que uma rejeição explícita, pois não revela que o recurso existe.
 
 ## O método `viewable()`
 
-O método `viewable()` controla se um dashboard deve ser incluído na listagem retornada pela API. A assinatura é simples:
-
 ```php
 public function viewable(): bool
 {
-    return true; // padrão — visível para todos
+    return true; // padrão — visível para todos os usuários autenticados
 }
 ```
 
-O valor padrão é `true`, o que significa que, sem sobrescrever o método, o dashboard estará disponível para qualquer usuário autenticado (sujeito apenas ao middleware das rotas).
+Um dashboard cujo `viewable()` retorna `false`:
 
-## Como o `DashboardResolver` usa o `viewable()`
-
-Durante a descoberta automática, o `DashboardResolver` instancia cada dashboard encontrado em `app/Bi/Dashboards/` e chama `viewable()`. Apenas os dashboards que retornam `true` são adicionados ao índice:
-
-```php
-// DashboardResolver::__construct()
-$dashboardInstance = App::make($dashboard);
-if ($dashboardInstance->viewable()) {
-    $this->dashboards->put($dashboardInstance->uriKey, $dashboardInstance);
-}
-```
-
-Um dashboard cujo `viewable()` retorna `false` não é registrado no container. Isso tem duas consequências:
-
-1. Ele não aparece na resposta de `GET /bi-apis/dashboards`
-2. As rotas `/bi-apis/{dashboard}/widgets`, `/bi-apis/{dashboard}/widgets/{widget}` e `/bi-apis/{dashboard}/filters/{filter}` retornam `404` para esse dashboard
-
-> O comportamento é de **ocultação**, não de **rejeição**. Não há resposta `403 Forbidden`. Para o usuário sem permissão, o dashboard simplesmente não existe — o que é mais seguro, pois não revela que o recurso existe mas está protegido.
+- Não aparece em `GET /bi-apis/dashboards`
+- Retorna `404` em qualquer endpoint específico (`/bi-apis/{dashboard}/widgets`, etc.)
 
 ## Usando Gates do Laravel
 
-A forma mais direta de integrar com o sistema de autorização do Laravel é usar `Gate::allows()`:
-
 ```php
 use Illuminate\Support\Facades\Gate;
 
 public function viewable(): bool
 {
-    return Gate::allows('view-financial-dashboard');
+    return Gate::allows('view-financial-reports');
 }
 ```
 
-O Gate precisa estar registrado em um Service Provider, tipicamente o `AuthServiceProvider`:
+Registre o Gate em um Service Provider:
 
 ```php
 // app/Providers/AuthServiceProvider.php
-use Illuminate\Support\Facades\Gate;
-
-public function boot(): void
-{
-    Gate::define('view-financial-dashboard', function ($user) {
-        return $user->hasRole('financeiro') || $user->hasRole('admin');
-    });
-}
+Gate::define('view-financial-reports', function ($user) {
+    return $user->hasRole('finance') || $user->hasRole('admin');
+});
 ```
 
-Exemplo com verificação de role e condição adicional:
+Condições compostas também são suportadas:
 
 ```php
 public function viewable(): bool
 {
-    return Gate::allows('view-financial-dashboard')
-        && auth()->user()->empresa->plano === 'premium';
+    return Gate::allows('view-financial-reports')
+        && auth()->user()->company->plan === 'premium';
 }
 ```
 
 ## Usando Policies
 
-Quando a autorização está atrelada a um model específico, o uso de uma Policy é mais organizado:
+Quando a autorização está atrelada a um model específico, uma Policy é mais organizada:
 
 ```php
 // app/Policies/DashboardPolicy.php
 class DashboardPolicy
 {
-    public function viewFinanceiro(User $user): bool
+    public function viewSales(User $user): bool
     {
-        return $user->perfil === 'financeiro';
+        return $user->role === 'sales_manager';
     }
 }
 ```
 
 ```php
-// app/Providers/AuthServiceProvider.php
-protected $policies = [
-    Dashboard::class => DashboardPolicy::class,
-];
-```
-
-No dashboard:
-
-```php
-use Illuminate\Support\Facades\Gate;
-use Luminix\Bi\Dashboard;
-
+// No dashboard
 public function viewable(): bool
 {
-    return Gate::allows('viewFinanceiro', Dashboard::class);
+    return auth()->user()->can('viewSales', Dashboard::class);
 }
 ```
 
-Ou usando `can()` diretamente no usuário:
+## Exemplo completo
 
-```php
-public function viewable(): bool
-{
-    return auth()->user()->can('viewFinanceiro', Dashboard::class);
-}
-```
-
-## Exemplo com Gate simples
-
-Dashboard de folha de pagamento visível apenas para o departamento de RH:
+Dashboard de receita visível apenas para usuários com o Gate `view-financial-reports`:
 
 ```php
 <?php
@@ -129,31 +84,31 @@ use Luminix\Bi\Filters\DateIntervalFilter;
 use Luminix\Bi\Metrics\SumMetric;
 use Luminix\Bi\Widgets\BigNumber;
 
-class FolhaPagamentoDashboard extends Dashboard
+class RevenueDashboard extends Dashboard
 {
-    public $model  = \App\Models\Pagamento::class;
-    public $uriKey = 'folha-pagamento';
-    public $name   = 'Folha de Pagamento';
+    public $model  = \App\Models\Order::class;
+    public $uriKey = 'revenue';
+    public $name   = 'Revenue Dashboard';
 
     public function viewable(): bool
     {
-        return Gate::allows('ver-folha-pagamento');
+        return Gate::allows('view-financial-reports');
     }
 
     public function filters(): array
     {
         return [
-            DateIntervalFilter::create('competencia', 'Competência'),
+            DateIntervalFilter::create('created_at', 'Period'),
         ];
     }
 
     public function widgets(): array
     {
         return [
-            BigNumber::create('total-bruto', 'Total Bruto')
+            BigNumber::create('total-revenue', 'Total Revenue')
                 ->metric(
-                    SumMetric::create('bruto', 'Valor Bruto')
-                        ->column('valor_bruto')
+                    SumMetric::create('revenue', 'Revenue')
+                        ->column('total_amount')
                 )
                 ->width('1/3'),
         ];
@@ -161,47 +116,9 @@ class FolhaPagamentoDashboard extends Dashboard
 }
 ```
 
-Para um usuário sem o Gate `ver-folha-pagamento`, a resposta de `GET /bi-apis/dashboards` não incluirá esse dashboard na lista.
+Para um usuário sem o Gate, a resposta de `GET /bi-apis/dashboards` não incluirá esse dashboard na lista.
 
-## Exemplo com Policy
-
-Dashboard de comissões visível apenas para o próprio vendedor ou para gerentes:
-
-```php
-// app/Policies/ComissoesDashboardPolicy.php
-class ComissoesDashboardPolicy
-{
-    public function view(User $user): bool
-    {
-        return $user->perfil === 'vendedor'
-            || $user->perfil === 'gerente';
-    }
-}
-```
-
-```php
-// app/Bi/Dashboards/ComissoesDashboard.php
-public function viewable(): bool
-{
-    return auth()->user()->can('view', \App\Policies\ComissoesDashboardPolicy::class);
-}
-```
-
-## Verificando o comportamento
-
-Para confirmar que o dashboard está sendo ocultado corretamente, acesse o endpoint de listagem com dois usuários diferentes — um com e outro sem permissão — e compare as respostas:
-
-```bash
-# Usuário com permissão
-curl -s -H "Cookie: laravel_session=<sessao_admin>" \
-     http://localhost:8000/bi-apis/dashboards | jq '.[].uriKey'
-# Resultado: ["vendas", "folha-pagamento", "pedidos"]
-
-# Usuário sem permissão
-curl -s -H "Cookie: laravel_session=<sessao_analista>" \
-     http://localhost:8000/bi-apis/dashboards | jq '.[].uriKey'
-# Resultado: ["vendas", "pedidos"]
-```
+> Para entender como as rotas são protegidas antes mesmo de chegar ao `viewable()`, consulte [Segurança de Rotas](../08-seguranca/01-rotas.md) e [Segurança de Dashboards](../08-seguranca/02-dashboard.md).
 
 ## Próximos Passos
 

@@ -1,99 +1,56 @@
 # Visão Geral das Métricas
 
-Pense em uma métrica como a resposta para uma pergunta do tipo "quanto?". Quanto foi faturado? Quantos pedidos foram feitos? Qual a média de avaliação dos produtos? Em termos SQL, toda métrica é uma função de agregação — `COUNT`, `SUM`, `AVG` ou uma expressão equivalente — que produz um valor numérico por grupo de registros.
+Métricas respondem à pergunta "quanto?": quantos pedidos foram feitos, quanto foi faturado, qual a média de valor por pedido. Em SQL, toda métrica é uma função de agregação — `COUNT`, `SUM`, `AVG` ou uma expressão equivalente — que produz um valor numérico por grupo de registros.
 
-No Luminix BI, cada métrica é uma classe PHP responsável por adicionar uma cláusula `SELECT` com uma agregação à query do widget. A dimensão define as linhas (o `GROUP BY`); a métrica define o valor exibido em cada linha.
+No Luminix BI, cada métrica é uma classe PHP que adiciona uma cláusula de agregação ao `SELECT` da query do widget. A dimensão define as linhas (o `GROUP BY`); a métrica define o valor exibido em cada linha.
 
-## A Interface `Metric` e a Classe `BaseMetric`
+## Os Três Parâmetros Fundamentais
 
-Toda métrica implementa a interface `Luminix\Bi\Metrics\Metric`, que exige a presença de um método `apply(Builder $builder, Widget $widget): Builder`. Esse método recebe o `QueryBuilder` já parcialmente construído pelo widget e deve retornar o builder com a cláusula de agregação adicionada.
+Toda métrica recebe ao menos dois parâmetros no construtor: `$key` e `$name`. Métricas que operam sobre uma coluna específica recebem também `$column`.
 
-A classe abstrata `BaseMetric` implementa `Metric` e estende `Attribute`, fornecendo as funcionalidades comuns a todas as métricas do pacote: as propriedades `$key`, `$name` e `$column`, os métodos `asPercentage()` e `color()`, e o valor padrão `getEmptyValue()`.
+| Parâmetro | Papel |
+|---|---|
+| `$key` | Alias SQL e chave no JSON de resposta |
+| `$name` | Rótulo exibido no front-end |
+| `$column` | Coluna SQL usada na agregação |
 
-Todas as métricas concretas do pacote — `CountMetric`, `SumMetric`, `AverageMetric`, `RawMetric`, `CountManyMetric` e `SumManyMetric` — estendem `BaseMetric`.
+O `$key` deve ser um identificador sem espaços (preferencialmente kebab-case ou snake_case), pois aparece tanto no alias do `SELECT` quanto na chave do objeto JSON retornado pela API.
 
-## A Classe `Attribute`: base comum entre Métrica e Dimensão
+## Tipos de Métricas
 
-`Attribute` é a classe base compartilhada entre métricas e dimensões. Ela define as três propriedades fundamentais presentes em todo elemento do BI:
-
-| Propriedade | Tipo | Papel |
+| Métrica | Agregação | Quando usar |
 |---|---|---|
-| `$key` | `string` | Identificador no JSON de resposta e alias SQL |
-| `$name` | `string` | Nome legível enviado ao front-end |
-| `$column` | `string` | Coluna SQL usada na agregação (padrão: igual ao `$key`) |
-
-### Como cada propriedade é usada
-
-O `$key` cumpre dois papéis simultâneos: é o alias SQL usado no `SELECT` (o `as nome`) e é a chave do objeto no JSON retornado pela API. Por isso, deve ser um identificador sem espaços, preferencialmente em snake_case.
-
-O `$name` é exclusivamente informativo — é enviado ao front-end no schema do widget para que a interface exiba um rótulo legível ao usuário.
-
-O `$column` é a coluna real do banco de dados. Por padrão, o pacote assume que o `$column` é igual ao `$key`. Quando eles diferem, use o método `->column()`.
-
-## O Método `->column()`
-
-Quando o nome que você quer usar no JSON (`$key`) difere do nome da coluna no banco de dados, use `->column()` para informar o nome real:
-
-```php
-use Luminix\Bi\Metrics\SumMetric;
-
-// $key = 'receita', mas a coluna no banco é 'valor_pedido'
-SumMetric::create('receita', 'Receita Total')
-    ->column('valor_pedido')
-```
-
-O SQL gerado será:
-
-```sql
-SELECT SUM(`valor_pedido`) AS `receita`
-```
-
-Sem `->column()`, o pacote tentaria executar `SUM(`receita`)`, que provavelmente não existe no banco.
+| `CountMetric` | `COUNT(*)` | Contar registros do modelo principal |
+| `SumMetric` | `SUM(column)` | Somar uma coluna numérica |
+| `AverageMetric` | `AVG(column)` | Calcular a média de uma coluna numérica |
+| `RawMetric` | expressão SQL livre | Lógica que as métricas acima não cobrem |
+| `CountManyMetric` | `withCount(relation)` | Contar registros de um relacionamento Eloquent |
+| `SumManyMetric` | `withSum(relation, column)` | Somar coluna em registros de um relacionamento |
 
 ## O Método `->asPercentage()`
 
-`->asPercentage()` transforma o valor numérico bruto em uma representação percentual em relação ao total de todos os registros do resultado. O cálculo é feito em PHP, não em SQL: o método `display()` divide o valor da linha pelo somatório de todos os valores da mesma métrica no resultado.
+Transforma o valor numérico em participação percentual em relação ao total do resultado. O cálculo é feito em PHP após a execução da query: o valor de cada linha é dividido pelo somatório de todos os valores da mesma métrica.
 
 ```php
 use Luminix\Bi\Metrics\SumMetric;
 
-SumMetric::create('receita', 'Participação na Receita')
-    ->column('valor_pedido')
+SumMetric::create('revenue', 'Participação na Receita', 'total_amount')
     ->asPercentage()
 ```
 
-Se o resultado contiver três linhas com valores `1000`, `2000` e `500`, a saída formatada será respectivamente `28.57%`, `57.14%` e `14.29%`. O valor raw continua existindo — apenas a exibição é alterada.
-
-> `->asPercentage()` opera sobre os dados já retornados pelo banco. Não altera a query SQL. Funciona corretamente quando o widget retorna todos os grupos em uma única consulta, que é o comportamento padrão.
+Se o resultado retornar três linhas com `1000`, `2000` e `500`, a exibição será `28.57%`, `57.14%` e `14.29%`. O `->asPercentage()` não altera o SQL gerado.
 
 ## O Método `->color()`
 
-O método `->color()` define um metadado de cor associado à métrica. Esse valor é enviado ao front-end como parte do schema do widget e pode ser usado por gráficos para colorir séries, barras ou fatias.
+Define um metadado de cor enviado ao front-end como parte do schema do widget. Usado por gráficos para colorir séries, barras ou fatias.
 
 ```php
 use Luminix\Bi\Metrics\CountMetric;
 
-CountMetric::create('total', 'Total de Pedidos')
+CountMetric::create('total-orders', 'Total de Pedidos')
     ->color('#4CAF50')
 ```
 
-A cor não afeta a query SQL — é puramente informativa para a camada de apresentação.
-
-## O Método `getEmptyValue()`
-
-`getEmptyValue()` retorna `0` para todas as métricas do pacote. Esse valor é usado pelo widget `LineChart` para preencher datas ausentes no resultado: quando uma data esperada não tem registro no banco, o gráfico insere o valor vazio (`0`) para manter a continuidade da série temporal.
-
-## Tabela Resumo das Métricas
-
-| Métrica | SQL gerado | Uso típico |
-|---|---|---|
-| `CountMetric` | `COUNT(*) AS \`key\`` | Número de registros |
-| `SumMetric` | `SUM(column) AS \`key\`` | Soma de um valor numérico |
-| `AverageMetric` | `AVG(column) AS \`key\`` | Média de um valor numérico |
-| `RawMetric` | `{raw} AS \`key\`` | Expressão SQL livre |
-| `CountManyMetric` | `withCount(relação)` | Contagem de registros relacionados |
-| `SumManyMetric` | `withSum(relação, coluna)` | Soma de coluna em registros relacionados |
-
 ## Próximos Passos
 
-← [Exportação CSV](../04-widgets/06-csv.md) | → [CountMetric](02-count.md)
+← [Uso Básico](../uso-basico.md) | → [CountMetric](02-count.md)
