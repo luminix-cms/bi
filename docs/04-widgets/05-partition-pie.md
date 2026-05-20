@@ -15,8 +15,8 @@ use Luminix\Bi\Metrics\CountMetric;
 use Luminix\Bi\Metrics\SumMetric;
 
 PartitionPie::create('orders-by-status', 'Pedidos por Status')
-    ->dimension(new StringDimension('status', 'Status'))
-    ->metric(new CountMetric('orders', 'Pedidos'));
+    ->dimension(StringDimension::create('status', 'Status'))
+    ->metric(CountMetric::create('orders', 'Pedidos'));
 ```
 
 Resposta da API:
@@ -40,8 +40,8 @@ O método `colors()` aceita um array associativo onde cada chave corresponde ao 
 
 ```php
 PartitionPie::create('orders-by-status', 'Pedidos por Status')
-    ->dimension(new StringDimension('status', 'Status'))
-    ->metric(new CountMetric('orders', 'Pedidos'))
+    ->dimension(StringDimension::create('status', 'Status'))
+    ->metric(CountMetric::create('orders', 'Pedidos'))
     ->colors([
         'completed' => '#10B981',
         'pending'   => '#F59E0B',
@@ -92,8 +92,8 @@ class SalesDashboard extends Dashboard
         return [
             PartitionPie::create('revenue-by-category', 'Receita por Categoria')
                 ->width('1/2')
-                ->dimension(new StringDimension('category', 'Categoria'))
-                ->metric(new SumMetric('total_amount', 'Receita'))
+                ->dimension(StringDimension::create('category', 'Categoria'))
+                ->metric(SumMetric::create('total_amount', 'Receita'))
                 ->colors([
                     'Electronics' => '#3B82F6',
                     'Clothing'    => '#10B981',

@@ -21,10 +21,10 @@ class SalesDashboard extends Dashboard
     {
         return [
             Table::create('revenue-by-month', 'Revenue by Month')
-                ->dimension(new MonthDimension('created_at', 'Month'))
+                ->dimension(MonthDimension::create('created_at', 'Month'))
                 ->metrics([
-                    new CountMetric('orders', 'Orders'),
-                    new SumMetric('revenue', 'Revenue')->column('total_amount'),
+                    CountMetric::create('orders', 'Orders'),
+                    SumMetric::create('revenue', 'Revenue')->column('total_amount'),
                 ]),
         ];
     }

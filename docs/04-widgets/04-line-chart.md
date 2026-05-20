@@ -35,13 +35,13 @@ use Luminix\Bi\Metrics\CountMetric;
 
 // Evolução mensal de receita
 LineChart::create('revenue-by-month', 'Receita por Mês')
-    ->dimension(new MonthDimension('created_at', 'Mês'))
-    ->metric(new SumMetric('total_amount', 'Receita'));
+    ->dimension(MonthDimension::create('created_at', 'Mês'))
+    ->metric(SumMetric::create('total_amount', 'Receita'));
 
 // Volume diário de pedidos
 LineChart::create('daily-orders', 'Pedidos por Dia')
-    ->dimension(new DayDimension('created_at', 'Data'))
-    ->metric(new CountMetric('orders', 'Pedidos'));
+    ->dimension(DayDimension::create('created_at', 'Data'))
+    ->metric(CountMetric::create('orders', 'Pedidos'));
 ```
 
 ---
@@ -72,10 +72,10 @@ class SalesDashboard extends Dashboard
         return [
             LineChart::create('monthly-evolution', 'Evolução Mensal')
                 ->width('full')
-                ->dimension(new MonthDimension('created_at', 'Mês'))
+                ->dimension(MonthDimension::create('created_at', 'Mês'))
                 ->metrics([
-                    new CountMetric('orders', 'Pedidos'),
-                    new SumMetric('total_amount', 'Receita'),
+                    CountMetric::create('orders', 'Pedidos'),
+                    SumMetric::create('total_amount', 'Receita'),
                 ]),
         ];
     }

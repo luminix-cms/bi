@@ -36,8 +36,8 @@ Os métodos retornam a própria instância, permitindo encadeamento fluente:
 ```php
 LineChart::create('revenue-by-month', 'Receita por Mês')
     ->width('2/3')
-    ->dimension(new MonthDimension('created_at', 'Mês'))
-    ->metric(new SumMetric('total_amount', 'Receita'));
+    ->dimension(MonthDimension::create('created_at', 'Mês'))
+    ->metric(SumMetric::create('total_amount', 'Receita'));
 ```
 
 ---
@@ -49,12 +49,12 @@ O método `width()` repassa um valor livre ao front-end para posicionamento no g
 ```php
 BigNumber::create('total-orders', 'Total de Pedidos')
     ->width('1/3')
-    ->metric(new CountMetric('orders', 'Pedidos'));
+    ->metric(CountMetric::create('orders', 'Pedidos'));
 
 Table::create('orders-by-status', 'Pedidos por Status')
     ->width('full')
-    ->dimension(new StringDimension('status', 'Status'))
-    ->metric(new CountMetric('orders', 'Pedidos'));
+    ->dimension(StringDimension::create('status', 'Status'))
+    ->metric(CountMetric::create('orders', 'Pedidos'));
 ```
 
 Se `width()` não for chamado, o valor serializado será `null`.
@@ -68,17 +68,17 @@ Todo widget é configurado com **métricas** (agregações numéricas) e **dimen
 ```php
 // Singular
 BigNumber::create('total-revenue', 'Receita Total')
-    ->metric(new SumMetric('total_amount', 'Receita'));
+    ->metric(SumMetric::create('total_amount', 'Receita'));
 
 // Plural
 Table::create('summary', 'Resumo')
     ->dimensions([
-        new MonthDimension('created_at', 'Mês'),
-        new StringDimension('status', 'Status'),
+        MonthDimension::create('created_at', 'Mês'),
+        StringDimension::create('status', 'Status'),
     ])
     ->metrics([
-        new CountMetric('orders', 'Pedidos'),
-        new SumMetric('total_amount', 'Receita'),
+        CountMetric::create('orders', 'Pedidos'),
+        SumMetric::create('total_amount', 'Receita'),
     ]);
 ```
 
@@ -97,7 +97,7 @@ BigNumber::create('vip-revenue', 'Receita Clientes VIP')
     ->scope(function (Builder $builder) {
         return $builder->where('plan', 'vip');
     })
-    ->metric(new SumMetric('total_amount', 'Receita'));
+    ->metric(SumMetric::create('total_amount', 'Receita'));
 ```
 
 O escopo do widget é aplicado **após** o escopo do dashboard — ambas as restrições coexistem na mesma query.

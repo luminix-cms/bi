@@ -14,10 +14,10 @@ use Luminix\Bi\Metrics\CountMetric;
 use Luminix\Bi\Metrics\SumMetric;
 
 Table::create('orders-by-status', 'Pedidos por Status')
-    ->dimension(new StringDimension('status', 'Status'))
+    ->dimension(StringDimension::create('status', 'Status'))
     ->metrics([
-        new CountMetric('orders', 'Pedidos'),
-        new SumMetric('total_amount', 'Receita'),
+        CountMetric::create('orders', 'Pedidos'),
+        SumMetric::create('total_amount', 'Receita'),
     ]);
 ```
 
@@ -26,12 +26,12 @@ Para múltiplas dimensões:
 ```php
 Table::create('orders-by-category-month', 'Pedidos por Categoria e Mês')
     ->dimensions([
-        new StringDimension('category', 'Categoria'),
-        new MonthDimension('created_at', 'Mês'),
+        StringDimension::create('category', 'Categoria'),
+        MonthDimension::create('created_at', 'Mês'),
     ])
     ->metrics([
-        new CountMetric('orders', 'Pedidos'),
-        new SumMetric('total_amount', 'Receita'),
+        CountMetric::create('orders', 'Pedidos'),
+        SumMetric::create('total_amount', 'Receita'),
     ]);
 ```
 
@@ -43,8 +43,8 @@ O método `orderBy($column, $direction)` define a ordenação aplicada quando a 
 
 ```php
 Table::create('top-categories', 'Top Categorias')
-    ->dimension(new StringDimension('category', 'Categoria'))
-    ->metric(new SumMetric('total_amount', 'Receita'))
+    ->dimension(StringDimension::create('category', 'Categoria'))
+    ->metric(SumMetric::create('total_amount', 'Receita'))
     ->orderBy('total_amount', 'desc');
 ```
 
@@ -90,12 +90,12 @@ class SalesDashboard extends Dashboard
             Table::create('orders-by-category', 'Pedidos por Categoria e Mês')
                 ->width('full')
                 ->dimensions([
-                    new StringDimension('category', 'Categoria'),
-                    new MonthDimension('created_at', 'Mês'),
+                    StringDimension::create('category', 'Categoria'),
+                    MonthDimension::create('created_at', 'Mês'),
                 ])
                 ->metrics([
-                    new CountMetric('orders', 'Pedidos'),
-                    new SumMetric('total_amount', 'Receita'),
+                    CountMetric::create('orders', 'Pedidos'),
+                    SumMetric::create('total_amount', 'Receita'),
                 ])
                 ->orderBy('orders', 'desc'),
         ];

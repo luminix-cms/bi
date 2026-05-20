@@ -24,10 +24,10 @@ use Luminix\Bi\Metrics\CountMetric;
 use Luminix\Bi\Metrics\SumMetric;
 
 BigNumber::create('total-orders', 'Total de Pedidos')
-    ->metric(new CountMetric('orders', 'Pedidos'));
+    ->metric(CountMetric::create('orders', 'Pedidos'));
 
 BigNumber::create('total-revenue', 'Receita Total')
-    ->metric(new SumMetric('total_amount', 'Receita'));
+    ->metric(SumMetric::create('total_amount', 'Receita'));
 ```
 
 Resposta da API:
@@ -71,15 +71,15 @@ class SalesDashboard extends Dashboard
         return [
             BigNumber::create('total-orders', 'Total de Pedidos')
                 ->width('1/3')
-                ->metric(new CountMetric('orders', 'Pedidos')),
+                ->metric(CountMetric::create('orders', 'Pedidos')),
 
             BigNumber::create('total-revenue', 'Receita Total')
                 ->width('1/3')
-                ->metric(new SumMetric('total_amount', 'Receita')),
+                ->metric(SumMetric::create('total_amount', 'Receita')),
 
             BigNumber::create('average-ticket', 'Ticket Médio')
                 ->width('1/3')
-                ->metric(new AverageMetric('avg_ticket', 'Ticket Médio')->column('total_amount')),
+                ->metric(AverageMetric::create('avg_ticket', 'Ticket Médio')->column('total_amount')),
         ];
     }
 
@@ -101,9 +101,9 @@ O `BigNumber` aceita múltiplas métricas. Nesse caso, o objeto retornado terá 
 ```php
 BigNumber::create('quick-summary', 'Resumo Rápido')
     ->metrics([
-        new CountMetric('orders', 'Pedidos'),
-        new SumMetric('total_amount', 'Receita'),
-        new AverageMetric('avg_ticket', 'Ticket Médio')->column('total_amount'),
+        CountMetric::create('orders', 'Pedidos'),
+        SumMetric::create('total_amount', 'Receita'),
+        AverageMetric::create('avg_ticket', 'Ticket Médio')->column('total_amount'),
     ]);
 ```
 
@@ -133,7 +133,7 @@ BigNumber::create('vip-revenue', 'Receita Clientes VIP')
     ->scope(function (Builder $builder) {
         return $builder->where('plan', 'vip');
     })
-    ->metric(new SumMetric('total_amount', 'Receita'));
+    ->metric(SumMetric::create('total_amount', 'Receita'));
 ```
 
 ---

@@ -49,20 +49,20 @@ O `Widget` é o **componente de visualização**. Cada widget define como os dad
 ```php
 // Tabela: pedidos por status
 Table::create('orders-by-status', 'Orders by Status')
-    ->dimension(new StringDimension('status', 'Status'))
+    ->dimension(StringDimension::create('status', 'Status'))
     ->metrics([
-        new CountMetric('orders', 'Orders'),
-        new SumMetric('revenue', 'Revenue')->column('total_amount'),
+        CountMetric::create('orders', 'Orders'),
+        SumMetric::create('revenue', 'Revenue')->column('total_amount'),
     ]);
 
 // Número único: total de receita
 BigNumber::create('total-revenue', 'Total Revenue')
-    ->metric(new SumMetric('revenue', 'Revenue')->column('total_amount'));
+    ->metric(SumMetric::create('revenue', 'Revenue')->column('total_amount'));
 
 // Gráfico de linha: evolução mensal
 LineChart::create('monthly-revenue', 'Revenue per Month')
-    ->dimension(new MonthDimension('created_at', 'Month'))
-    ->metric(new SumMetric('revenue', 'Revenue')->column('total_amount'));
+    ->dimension(MonthDimension::create('created_at', 'Month'))
+    ->metric(SumMetric::create('revenue', 'Revenue')->column('total_amount'));
 ```
 
 Widgets são construídos com `create($key, $name)` e configurados por encadeamento de métodos.
@@ -83,15 +83,15 @@ A `Métrica` define **o que calcular** — uma agregação sobre os registros de
 | `SumManyMetric` | Somar valores de um relacionamento |
 
 ```php
-new CountMetric('orders', 'Orders');
+CountMetric::create('orders', 'Orders');
 
 // 'revenue' é a chave no JSON; 'total_amount' é a coluna real no banco
-new SumMetric('revenue', 'Revenue')->column('total_amount');
+SumMetric::create('revenue', 'Revenue')->column('total_amount');
 
-new AverageMetric('avg_ticket', 'Average Ticket')->column('total_amount');
+AverageMetric::create('avg_ticket', 'Average Ticket')->column('total_amount');
 
 // Exibe cada linha como percentual do total geral (calculado em PHP após a query)
-new SumMetric('share', 'Share')->column('total_amount')->asPercentage();
+SumMetric::create('share', 'Share')->column('total_amount')->asPercentage();
 ```
 
 ---
@@ -110,11 +110,11 @@ A `Dimensão` define **como agrupar os dados** — o critério de `GROUP BY`. Ca
 | `RawDimension` | Depende da expressão |
 
 ```php
-new StringDimension('status', 'Status');
+StringDimension::create('status', 'Status');
 
-new MonthDimension('created_at', 'Month');
+MonthDimension::create('created_at', 'Month');
 
-new BelongsToDimension('customer_id', 'Customer')
+BelongsToDimension::create('customer_id', 'Customer')
     ->relation('customer')      // nome da relação no modelo
     ->otherColumn('name');      // coluna a exibir do modelo relacionado
 ```

@@ -63,12 +63,12 @@ use Luminix\Bi\Metrics\SumMetric;
 
 // Total de pedidos
 BigNumber::create('total-orders', 'Total Orders')
-    ->metric(new CountMetric('orders', 'Orders')),
+    ->metric(CountMetric::create('orders', 'Orders')),
 
 // Receita total
 BigNumber::create('total-revenue', 'Total Revenue')
     ->metric(
-        new SumMetric('revenue', 'Revenue')->column('total_amount')
+        SumMetric::create('revenue', 'Revenue')->column('total_amount')
     ),
 ```
 
@@ -82,10 +82,10 @@ use Luminix\Bi\Dimensions\StringDimension;
 
 // Pedidos agrupados por status, com contagem e receita
 Table::create('orders-by-status', 'Orders by Status')
-    ->dimension(new StringDimension('status', 'Status'))
+    ->dimension(StringDimension::create('status', 'Status'))
     ->metrics([
-        new CountMetric('orders', 'Orders'),
-        new SumMetric('revenue', 'Revenue')->column('total_amount'),
+        CountMetric::create('orders', 'Orders'),
+        SumMetric::create('revenue', 'Revenue')->column('total_amount'),
     ])
     ->sortBy('revenue', 'desc'),
 ```
@@ -102,9 +102,9 @@ use Luminix\Bi\Dimensions\MonthDimension;
 
 // Receita por mês
 LineChart::create('revenue-by-month', 'Revenue per Month')
-    ->dimension(new MonthDimension('created_at', 'Month'))
+    ->dimension(MonthDimension::create('created_at', 'Month'))
     ->metric(
-        new SumMetric('revenue', 'Revenue')->column('total_amount')
+        SumMetric::create('revenue', 'Revenue')->column('total_amount')
     ),
 ```
 
@@ -117,8 +117,8 @@ use Luminix\Bi\Widgets\PartitionPie;
 
 // Distribuição de pedidos por status
 PartitionPie::create('orders-by-status-pie', 'Orders by Status')
-    ->dimension(new StringDimension('status', 'Status'))
-    ->metric(new CountMetric('orders', 'Orders'))
+    ->dimension(StringDimension::create('status', 'Status'))
+    ->metric(CountMetric::create('orders', 'Orders'))
     ->colors([
         'confirmed' => '#22c55e',
         'pending'   => '#f59e0b',
@@ -137,26 +137,26 @@ public function widgets(): array
 {
     return [
         BigNumber::create('total-orders', 'Total Orders')
-            ->metric(new CountMetric('orders', 'Orders')),
+            ->metric(CountMetric::create('orders', 'Orders')),
 
         BigNumber::create('total-revenue', 'Total Revenue')
-            ->metric(new SumMetric('revenue', 'Revenue')->column('total_amount')),
+            ->metric(SumMetric::create('revenue', 'Revenue')->column('total_amount')),
 
         Table::create('orders-by-status', 'Orders by Status')
-            ->dimension(new StringDimension('status', 'Status'))
+            ->dimension(StringDimension::create('status', 'Status'))
             ->metrics([
-                new CountMetric('orders', 'Orders'),
-                new SumMetric('revenue', 'Revenue')->column('total_amount'),
+                CountMetric::create('orders', 'Orders'),
+                SumMetric::create('revenue', 'Revenue')->column('total_amount'),
             ])
             ->sortBy('revenue', 'desc'),
 
         LineChart::create('revenue-by-month', 'Revenue per Month')
-            ->dimension(new MonthDimension('created_at', 'Month'))
-            ->metric(new SumMetric('revenue', 'Revenue')->column('total_amount')),
+            ->dimension(MonthDimension::create('created_at', 'Month'))
+            ->metric(SumMetric::create('revenue', 'Revenue')->column('total_amount')),
 
         PartitionPie::create('orders-by-status-pie', 'Orders by Status')
-            ->dimension(new StringDimension('status', 'Status'))
-            ->metric(new CountMetric('orders', 'Orders'))
+            ->dimension(StringDimension::create('status', 'Status'))
+            ->metric(CountMetric::create('orders', 'Orders'))
             ->colors([
                 'confirmed' => '#22c55e',
                 'pending'   => '#f59e0b',
@@ -237,26 +237,26 @@ class SalesDashboard extends Dashboard
     {
         return [
             BigNumber::create('total-orders', 'Total Orders')
-                ->metric(new CountMetric('orders', 'Orders')),
+                ->metric(CountMetric::create('orders', 'Orders')),
 
             BigNumber::create('total-revenue', 'Total Revenue')
-                ->metric(new SumMetric('revenue', 'Revenue')->column('total_amount')),
+                ->metric(SumMetric::create('revenue', 'Revenue')->column('total_amount')),
 
             Table::create('orders-by-status', 'Orders by Status')
-                ->dimension(new StringDimension('status', 'Status'))
+                ->dimension(StringDimension::create('status', 'Status'))
                 ->metrics([
-                    new CountMetric('orders', 'Orders'),
-                    new SumMetric('revenue', 'Revenue')->column('total_amount'),
+                    CountMetric::create('orders', 'Orders'),
+                    SumMetric::create('revenue', 'Revenue')->column('total_amount'),
                 ])
                 ->sortBy('revenue', 'desc'),
 
             LineChart::create('revenue-by-month', 'Revenue per Month')
-                ->dimension(new MonthDimension('created_at', 'Month'))
-                ->metric(new SumMetric('revenue', 'Revenue')->column('total_amount')),
+                ->dimension(MonthDimension::create('created_at', 'Month'))
+                ->metric(SumMetric::create('revenue', 'Revenue')->column('total_amount')),
 
             PartitionPie::create('orders-by-status-pie', 'Orders by Status')
-                ->dimension(new StringDimension('status', 'Status'))
-                ->metric(new CountMetric('orders', 'Orders'))
+                ->dimension(StringDimension::create('status', 'Status'))
+                ->metric(CountMetric::create('orders', 'Orders'))
                 ->colors([
                     'confirmed' => '#22c55e',
                     'pending'   => '#f59e0b',
