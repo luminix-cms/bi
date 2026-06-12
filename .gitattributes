@@ -1,2 +1,9 @@
 *.css linguist-detectable=false
 *.js linguist-detectable=false
+
+/tests export-ignore
+/docs export-ignore
+/.styleci.yml export-ignore
+/.travis.yml export-ignore
+/CLAUDE.md export-ignore
+/phpunit.xml export-ignore

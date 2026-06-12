@@ -2,11 +2,11 @@
 
 ## Pré-requisitos
 
-| Requisito | Versão mínima |
+| Requisito | Versão |
 |---|---|
-| PHP | 8.2 |
-| Laravel | 11.0 |
-| luminix/backend | ^1.0 |
+| PHP | 8.2+ (8.3+ para Laravel 13) |
+| Laravel | 11.x, 12.x ou 13.x |
+| luminix/backend | ^1.1 |
 
 O pacote `luminix/backend` é uma dependência direta do Luminix BI e será instalado automaticamente pelo Composer.
 

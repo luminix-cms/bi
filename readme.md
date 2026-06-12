@@ -38,7 +38,7 @@ class VendasDashboard extends Dashboard
 
 ---
 
-**Requisitos:** PHP 8.2+, Laravel 11+, `luminix/backend ^1.0`
+**Requisitos:** PHP 8.2+ (8.3+ para Laravel 13), Laravel 11.x, 12.x ou 13.x, `luminix/backend ^1.1`
 
 **Licença:** MIT — fork de [laravel-bi/laravel-bi](https://github.com/laravel-bi/laravel-bi) por Alberto Bottarini
 
