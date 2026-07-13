@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 class BelongsToDimension extends BaseDimension
 {
     public $relation;
+    public $otherColumn;
 
     public function __construct($key, $name)
     {

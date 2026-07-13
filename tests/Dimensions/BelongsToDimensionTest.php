@@ -16,4 +16,22 @@ class BelongsToDimensionTest extends AbstractDimensionTestCase
     {
         return 'select "bar_id" from "foo" group by "bar_id"';
     }
+
+    public function test_other_column_emits_no_dynamic_property_deprecation(): void
+    {
+        $deprecations = [];
+        set_error_handler(function ($errno, $errstr) use (&$deprecations) {
+            $deprecations[] = $errstr;
+
+            return true;
+        }, E_DEPRECATED | E_USER_DEPRECATED);
+
+        try {
+            BelongsToDimension::create('bar', 'Bar')->otherColumn('name');
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertSame([], $deprecations);
+    }
 }
