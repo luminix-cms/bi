@@ -31,6 +31,21 @@ class DateIntervalFilterTest extends AbstractFilterTestCase
         $this->assertSql($builder, 'select * from "foo" where "created_at" between ? and ?');
     }
 
+    public function test_apply_includes_entire_end_day(): void
+    {
+        $filter  = DateIntervalFilter::create('created_at', 'Date Range');
+        $builder = $filter->apply(
+            $this->baseBuilder,
+            ['start' => '2024-01-01', 'end' => '2024-01-31'],
+            $this->makeBiRequest()
+        );
+
+        [$start, $end] = $builder->getBindings();
+
+        $this->assertSame('2024-01-01 00:00:00', $start->format('Y-m-d H:i:s'));
+        $this->assertSame('2024-01-31 23:59:59', $end->format('Y-m-d H:i:s'));
+    }
+
     public function test_default_dates_sets_default_value(): void
     {
         $filter = DateIntervalFilter::create('created_at', 'Date Range');

@@ -12,8 +12,8 @@ class DateIntervalFilter extends BaseFilter
 
     public function apply(Builder $builder, array $filterData, BiRequest $request): Builder
     {
-        $start = Carbon::parse($filterData['start']);
-        $end   = Carbon::parse($filterData['end']);
+        $start = Carbon::parse($filterData['start'])->startOfDay();
+        $end   = Carbon::parse($filterData['end'])->endOfDay();
 
         return $builder->whereBetween($this->column, [$start, $end]);
     }
