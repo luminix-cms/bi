@@ -7,7 +7,7 @@ Route::group([
     'namespace'  => 'Luminix\Bi\Http\Controllers\Apis',
     'as'         => 'bi.api',
     'prefix'     => Config::get('luminix.bi.path', 'bi') . '-apis',
-    'middleware' => Config::get('luminix.bi.middleware', ['web', 'auth', 'can:viewBi'])
+    'middleware' => Config::get('luminix.bi.middleware', ['web', 'auth', 'can:read-bi-reports'])
 ], function () {
 
     Route::get('/dashboards', 'DashboardController@getDashboards');
