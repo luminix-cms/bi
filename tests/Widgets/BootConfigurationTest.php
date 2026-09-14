@@ -59,4 +59,33 @@ class BootConfigurationTest extends TestCase
 
         $this->assertEquals('bi', $config['luminix']['bi']['path']);
     }
+
+    /**
+     * The resolver is no longer reached only from the BI routes: it now runs on
+     * every boot payload, including for apps that never ran `bi:install`.
+     */
+    public function test_missing_dashboards_directory_does_not_break_the_boot_payload(): void
+    {
+        $this->assertDirectoryDoesNotExist(app_path('Bi/Dashboards'));
+
+        $config = BootService::wireConfig(['app' => ['name' => 'Laravel']]);
+
+        $this->assertArrayNotHasKey('luminix', $config);
+        $this->assertSame(['app' => ['name' => 'Laravel']], $config);
+    }
+
+    public function test_empty_dashboards_directory_does_not_publish_the_key(): void
+    {
+        $directory = app_path('Bi/Dashboards');
+        mkdir($directory, 0777, true);
+
+        try {
+            $config = BootService::wireConfig([]);
+        } finally {
+            rmdir($directory);
+            rmdir(dirname($directory));
+        }
+
+        $this->assertArrayNotHasKey('luminix', $config);
+    }
 }
