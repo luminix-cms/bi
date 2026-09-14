@@ -10,6 +10,8 @@ use Luminix\Frontend\Services\BootService;
 
 class BiServiceProvider extends ServiceProvider
 {
+    protected static ?\Closure $configReducer = null;
+
     public function boot()
     {
         if ($this->app->runningInConsole()) {
@@ -62,28 +64,31 @@ class BiServiceProvider extends ServiceProvider
 
     protected function wireConfiguration()
     {
-        // Reducible rebinds $this to null when invoking the reducer, so the
-        // check is reached through this captured reference rather than $this.
-        $provider = $this;
+        // BootService keeps its reducers in a static property, so a worker that
+        // boots providers more than once per process would stack a new closure on
+        // every boot. Dropping the previous one keeps the registry at one entry.
+        if (static::$configReducer !== null) {
+            BootService::removeReducer('wireConfig', static::$configReducer);
+        }
 
-        BootService::reducer('wireConfig', function (array $config) use ($provider) {
-            if (!$provider->userCanSeeAnyDashboard()) {
+        // Reducible rebinds the closure to a null $this, so the resolver is read
+        // from the container at call time rather than captured from the provider.
+        // That also keeps the check on the current request's container.
+        static::$configReducer = function (array $config) {
+            if (app(DashboardResolver::class)->all()->isEmpty()) {
                 return $config;
             }
 
-            return array_merge_recursive($config, [
+            return array_replace_recursive($config, [
                 'luminix' => [
                     'bi' => [
                         'path' => config('luminix.bi.path'),
                     ],
                 ],
             ]);
-        });
-    }
+        };
 
-    public function userCanSeeAnyDashboard(): bool
-    {
-        return $this->app->make(DashboardResolver::class)->all()->isNotEmpty();
+        BootService::reducer('wireConfig', static::$configReducer);
     }
 
 }

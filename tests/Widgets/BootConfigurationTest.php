@@ -88,4 +88,32 @@ class BootConfigurationTest extends TestCase
 
         $this->assertArrayNotHasKey('luminix', $config);
     }
+
+    public function test_path_already_present_in_the_payload_is_replaced_not_appended(): void
+    {
+        config(['luminix.bi.path' => 'relatorios']);
+        $this->app->instance(DashboardResolver::class, $this->fakeResolver(true));
+
+        $config = BootService::wireConfig([
+            'luminix' => [
+                'admin' => ['path' => 'admin'],
+                'bi'    => ['path' => 'obsoleto'],
+            ],
+        ]);
+
+        $this->assertSame('relatorios', $config['luminix']['bi']['path']);
+        $this->assertSame('admin', $config['luminix']['admin']['path']);
+    }
+
+    public function test_booting_the_provider_twice_does_not_stack_reducers(): void
+    {
+        config(['luminix.bi.path' => 'relatorios']);
+        $this->app->instance(DashboardResolver::class, $this->fakeResolver(true));
+
+        (new BiServiceProvider($this->app))->boot();
+        $this->app->instance(DashboardResolver::class, $this->fakeResolver(true));
+
+        $this->assertCount(1, BootService::getReducer('wireConfig'));
+        $this->assertSame('relatorios', BootService::wireConfig([])['luminix']['bi']['path']);
+    }
 }
