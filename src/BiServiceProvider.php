@@ -6,6 +6,7 @@ use App;
 use Route;
 use Config;
 use Illuminate\Support\ServiceProvider;
+use Luminix\Frontend\Services\BootService;
 
 class BiServiceProvider extends ServiceProvider
 {
@@ -20,6 +21,7 @@ class BiServiceProvider extends ServiceProvider
         $this->registerRoutes();
         $this->registerCommands();
         $this->bindResolverToContainer();
+        $this->wireConfiguration();
     }
 
     protected function mergeDefaultConfig()
@@ -56,6 +58,32 @@ class BiServiceProvider extends ServiceProvider
         $this->app->singleton(DashboardResolver::class, function () {
             return new DashboardResolver();
         });
+    }
+
+    protected function wireConfiguration()
+    {
+        // Reducible rebinds $this to null when invoking the reducer, so the
+        // check is reached through this captured reference rather than $this.
+        $provider = $this;
+
+        BootService::reducer('wireConfig', function (array $config) use ($provider) {
+            if (!$provider->userCanSeeAnyDashboard()) {
+                return $config;
+            }
+
+            return array_merge_recursive($config, [
+                'luminix' => [
+                    'bi' => [
+                        'path' => config('luminix.bi.path'),
+                    ],
+                ],
+            ]);
+        });
+    }
+
+    public function userCanSeeAnyDashboard(): bool
+    {
+        return $this->app->make(DashboardResolver::class)->all()->isNotEmpty();
     }
 
 }
