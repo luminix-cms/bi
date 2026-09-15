@@ -40,6 +40,14 @@ class BiServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../config/bi.php' => config_path('luminix/bi.php')
         ], 'bi-config');
+
+        // Installs the consumer skill into the app so it triggers without /luminix. The whole
+        // tree is copied, so refreshing it after a package upgrade takes `--force`. Shared tag
+        // across every luminix/* package -> one `vendor:publish --tag=luminix-skill` covers all
+        // of them.
+        $this->publishes([
+            __DIR__ . '/../skill' => base_path('.claude/skills/luminix-bi'),
+        ], 'luminix-skill');
     }
 
     protected function registerRoutes()
