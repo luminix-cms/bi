@@ -7,8 +7,9 @@
 | PHP | 8.2+ (8.3+ para Laravel 13) |
 | Laravel | 11.x, 12.x ou 13.x |
 | luminix/backend | ^1.1 |
+| luminix/frontend | ^1.1 |
 
-O pacote `luminix/backend` é uma dependência direta do Luminix BI e será instalado automaticamente pelo Composer.
+Os pacotes `luminix/backend` e `luminix/frontend` são dependências diretas do Luminix BI e serão instalados automaticamente pelo Composer. O `luminix/frontend` é quem recebe a configuração publicada pelo pacote — veja [Configuração](02-configuracao.md#payload-de-boot).
 
 ## Instalando via Composer
 

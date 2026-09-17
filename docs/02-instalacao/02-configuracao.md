@@ -102,6 +102,24 @@ Quando habilitado, inclui as queries SQL executadas no campo `debug` da resposta
 
 > Nunca habilite `debug` em produção — as queries ficam visíveis na resposta HTTP.
 
+## Payload de boot
+
+O `luminix/bi` publica a chave `luminix.bi.path` no payload de boot do `luminix/frontend` (o mesmo mecanismo usado pelo `luminix/admin`), para que o frontend descubra o prefixo das rotas sem precisar repeti-lo na sua própria configuração.
+
+A publicação é condicionada à mesma autorização usada em `GET /bi-apis/dashboards`: só ocorre quando o usuário autenticado enxerga pelo menos um dashboard (`viewable()` retornando `true` para algum item resolvido por `DashboardResolver`). Um usuário sem nenhum dashboard visível não recebe a chave — não há prefixo de rota para ele saber.
+
+```json
+{
+    "luminix": {
+        "bi": {
+            "path": "bi"
+        }
+    }
+}
+```
+
+Com `LUMINIX_BI_PATH=analytics`, o payload publica `luminix.bi.path = "analytics"` e o `@luminix/react-dashboards` passa a chamar `/analytics-apis/...` automaticamente, sem nenhuma configuração adicional no frontend.
+
 ## Exemplo de `.env`
 
 ```bash

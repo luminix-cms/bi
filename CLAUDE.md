@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `luminix/bi` is a Laravel package for building analytical dashboards. It is a fork of `laravel-bi/laravel-bi` adapted to work within the `luminix/backend` ecosystem. It exposes a JSON API consumed by a frontend — there is no server-rendered UI in this package.
 
-**Requirements:** PHP 8.2+ (8.3+ for Laravel 13), Laravel 11–13, `luminix/backend ^1.1`
+**Requirements:** PHP 8.2+ (8.3+ for Laravel 13), Laravel 11–13, `luminix/backend ^1.1`, `luminix/frontend ^1.1`
 
 ## Commands
 
@@ -56,6 +56,18 @@ When a widget request arrives, `BaseWidget::data()` builds the query in this ord
 ### Dashboard discovery
 
 `DashboardResolver` (singleton) scans `app/Bi/Dashboards/` in the host application at boot time, instantiates every non-abstract subclass of `Dashboard`, and keeps only those where `viewable()` returns `true`. Dashboards are keyed by their `$uriKey` property.
+
+### Boot payload
+
+`BiServiceProvider` registers a `wireConfig` reducer on `luminix/frontend`'s `BootService`, publishing `luminix.bi.path` (from `config('luminix.bi.path')`) into the boot payload so `@luminix/react-dashboards` can derive the API prefix without duplicating it in frontend config. The key is omitted unless `DashboardResolver` resolves at least one viewable dashboard — the same rule as `DashboardController@getDashboards`.
+
+Three constraints shape the implementation:
+
+- `Reducible::__callStatic` rebinds the reducer closure's `$this` to `null` and its scope to `BootService`, so the closure cannot reach the provider. It reads `app(DashboardResolver::class)` at call time instead — which is also what keeps the check on the current request's container rather than on whichever container happened to boot the provider.
+- `Reducible::$reducers` is a **static** property, so a process that boots providers more than once (Octane, a long-lived worker) would stack a new closure per boot. The provider holds its closure in `static::$configReducer` and calls `removeReducer` before re-registering, keeping the registry at one entry.
+- The merge uses `array_replace_recursive`, not `array_merge_recursive`. The latter promotes a colliding scalar to an array, so a payload that already carried `luminix.bi.path` would publish `['old', 'new']` instead of the current value.
+
+Because this reducer runs on every boot payload, `DashboardResolver` is no longer reached only from the BI routes. Its constructor returns early when `app/Bi/Dashboards` is absent; without that guard, `Finder::in()` would throw and take down every page of an app that has not run `bi:install`.
 
 ### API routes
 

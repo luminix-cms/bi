@@ -16,6 +16,14 @@ class DashboardResolver
         $this->dashboards = collect();
 
         $directory = app_path('Bi/Dashboards');
+
+        // Finder::in() throws when the directory is absent. The resolver is built
+        // on every boot payload, so an app that has not run `bi:install` yet would
+        // fail on every request instead of only on the BI routes.
+        if (!is_dir($directory)) {
+            return;
+        }
+
         $namespace = app()->getNamespace();
 
         foreach ((new Finder())->in($directory)->files() as $dashboard) {
