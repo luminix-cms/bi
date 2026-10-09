@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Luminix\Bi\Dashboard;
 use Luminix\Bi\Filters\RelationFilter;
+use Luminix\Bi\Filters\StringFilter;
 use Luminix\Bi\Metrics\CountMetric;
 use Luminix\Bi\Support\BiRequest;
 use Luminix\Bi\Tests\Models\FooModel;
@@ -112,6 +113,16 @@ class ConnectionConfigTest extends TestCase
 
         $extra = RelationFilter::create('bar', 'Bar')
             ->otherColumn('name')
+            ->extra($this->makeDashboard(), $this->makeBiRequest());
+
+        $this->assertCount(3, $extra['options']);
+    }
+
+    public function test_string_filter_extra_uses_configured_connection(): void
+    {
+        config(['luminix.bi.connection' => 'bi_replica']);
+
+        $extra = StringFilter::create('id', 'Id')
             ->extra($this->makeDashboard(), $this->makeBiRequest());
 
         $this->assertCount(3, $extra['options']);
