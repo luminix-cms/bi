@@ -15,6 +15,8 @@ public function scope(Builder $builder): Builder
 
 O método é opcional. Quando declarado, é aplicado antes dos filtros do usuário — portanto qualquer condição colocada aqui estará sempre presente na query final.
 
+O mesmo escopo também recorta as opções do [`StringFilter`](../07-filtros/02-string.md), para que o seletor não ofereça valores fora das linhas visíveis.
+
 ## Ordem de aplicação
 
 1. Escopo do dashboard (`scope()`)

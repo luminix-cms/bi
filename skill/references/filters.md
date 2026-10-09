@@ -49,9 +49,9 @@ subquery and the option list, and is called with `$this` rebound to the filter.
 
 Only two filters answer the filter endpoint with anything:
 
-- `StringFilter` returns the distinct values of its column. It queries the dashboard model directly,
-  so the BI connection and the backend row-level scope do **not** apply to this list, even though
-  they apply to the widget data (-> `query-pipeline.md`)
+- `StringFilter` returns the distinct values of its column, built on the same base query as the
+  widget rows: the BI connection, `allowed()` for a Luminix model, and the dashboard's `scope()`
+  (-> `query-pipeline.md`). The option list never offers values outside the rows the user sees
 - `RelationFilter` returns `{options, otherColumn, primaryKey}`, selecting the primary key and
   `otherColumn` (falling back to `name`) from the related model through the same query service the
   widgets use — so the connection and, for a Luminix model, `allowed()` do apply here

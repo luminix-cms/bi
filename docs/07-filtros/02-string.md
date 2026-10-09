@@ -57,6 +57,8 @@ Mesmo que o usuário selecione apenas um valor, ele deve ser enviado como array:
 }
 ```
 
+As opções partem da mesma base de dados das linhas dos widgets: a connection configurada em `luminix.bi.connection`, o `allowed()` de um model Luminix e o `scope()` do dashboard (veja [Escopo Global](../03-dashboards/03-escopo.md)). Com isso, um usuário de escopo limitado só recebe os valores das linhas que ele já enxerga.
+
 O frontend usa esse array `options` para popular o dropdown ou lista de checkboxes. Não é necessário manter uma lista estática de opções — o controle sempre refletirá os valores presentes no banco.
 
 > Em tabelas com alta cardinalidade ou colunas de texto livre, a query `SELECT DISTINCT` pode retornar muitas opções. Nesses casos, considere um [filtro customizado](../09-extensibilidade/03-filtro-customizado.md) com limites ou uma fonte de dados alternativa.
