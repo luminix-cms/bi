@@ -4,15 +4,22 @@ O Luminix BI registra cinco endpoints REST automaticamente via `BiServiceProvide
 
 ## Tabela de Endpoints
 
-| Método | Path | Descrição |
-|---|---|---|
-| `GET` | `/{path}-apis/dashboards` | Lista dashboards visíveis |
-| `GET` | `/{path}-apis/{dashboard}/widgets` | Configuração completa do dashboard (widgets e filtros) |
-| `GET` | `/{path}-apis/{dashboard}/widgets/{widget}` | Dados calculados do widget |
-| `GET` | `/{path}-apis/{dashboard}/widgets/{widget}/csv` | Download dos dados em CSV |
-| `GET` | `/{path}-apis/{dashboard}/filters/{filter}` | Metadados extras do filtro |
+| Método | Path | Nome | Descrição |
+|---|---|---|---|
+| `GET` | `/{path}-apis/dashboards` | `bi.api.dashboards` | Lista dashboards visíveis |
+| `GET` | `/{path}-apis/{dashboard}/widgets` | `bi.api.dashboard.widgets` | Configuração completa do dashboard (widgets e filtros) |
+| `GET` | `/{path}-apis/{dashboard}/widgets/{widget}` | `bi.api.dashboard.widgets.widget` | Dados calculados do widget |
+| `GET` | `/{path}-apis/{dashboard}/widgets/{widget}/csv` | `bi.api.dashboard.widgets.widget.csv` | Download dos dados em CSV |
+| `GET` | `/{path}-apis/{dashboard}/filters/{filter}` | `bi.api.dashboard.filters.filter` | Metadados extras do filtro |
 
 Os parâmetros de rota `{dashboard}` e `{widget}` correspondem aos valores de `uriKey` e `key` definidos nas respectivas classes.
+
+Cada rota tem um nome próprio, derivado da URI, então `route()` monta a URL já com o prefixo configurado:
+
+```php
+route('bi.api.dashboard.widgets.widget', ['dashboard' => 'sales', 'widget' => 'total']);
+// https://app.example.com/bi-apis/sales/widgets/total
+```
 
 ## Prefixo das Rotas
 

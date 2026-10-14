@@ -1,16 +1,16 @@
 # HTTP API
 
 Everything is served under `{luminix.bi.path}-apis` (`bi-apis` by default) behind the middleware in
-`luminix.bi.middleware` (-> `configuration.md`). The routes carry no names: build URLs from the
-configured path rather than reaching for `route()`.
+`luminix.bi.middleware` (-> `configuration.md`). Each route carries a name under `bi.api.`, so
+`route()` builds its URL with the configured path already applied.
 
-| Method | URI | Body |
-|---|---|---|
-| GET | `/bi-apis/dashboards` | `{status, data}` — every dashboard this user may view |
-| GET | `/bi-apis/{dashboard}/widgets` | `{status, data}` — `uriKey`, `name`, `csvEnabled`, `widgets`, `filters` |
-| GET | `/bi-apis/{dashboard}/widgets/{widget}` | `{status, data}` — the widget's rows |
-| GET | `/bi-apis/{dashboard}/widgets/{widget}/csv` | streamed CSV of the same rows |
-| GET | `/bi-apis/{dashboard}/filters/{filter}` | `{status, extra}` — the filter's option payload |
+| Method | URI | Name | Body |
+|---|---|---|---|
+| GET | `/bi-apis/dashboards` | `bi.api.dashboards` | `{status, data}` — every dashboard this user may view |
+| GET | `/bi-apis/{dashboard}/widgets` | `bi.api.dashboard.widgets` | `{status, data}` — `uriKey`, `name`, `csvEnabled`, `widgets`, `filters` |
+| GET | `/bi-apis/{dashboard}/widgets/{widget}` | `bi.api.dashboard.widgets.widget` | `{status, data}` — the widget's rows |
+| GET | `/bi-apis/{dashboard}/widgets/{widget}/csv` | `bi.api.dashboard.widgets.widget.csv` | streamed CSV of the same rows |
+| GET | `/bi-apis/{dashboard}/filters/{filter}` | `bi.api.dashboard.filters.filter` | `{status, extra}` — the filter's option payload |
 
 `{dashboard}` is the dashboard's `$uriKey`, `{widget}` the widget's `key`, `{filter}` the filter's
 `key`. The `status` field is always the literal `200`; failures are HTTP aborts, not envelopes.
