@@ -13,8 +13,8 @@ package merges its own defaults underneath, so a published file may omit any key
 - the default middleware assumes session auth plus the `read-bi-reports` gate, which lives in the
   provider `bi:install` publishes (-> `getting-started.md`). For a token-authenticated client, swap
   `web` for `api` — mirroring `luminix.backend.security.middleware`
-- `connection` is applied by the query service the widgets share, so it also covers `RelationFilter`
-  option lists, but not `StringFilter`'s (-> `filters.md`)
+- `connection` is applied by the query service the widgets share, so it also covers the
+  `StringFilter` and `RelationFilter` option lists (-> `filters.md`)
 
 ## Boot payload
 

@@ -5,7 +5,9 @@ overridden / ignored" questions.
 
 1. **Base builder** — the dashboard's `$model`, on the connection in `luminix.bi.connection` when
    one is set, otherwise the model's own. Authorization is attached here, below.
-2. **Dashboard `scope()`**, if the dashboard defines the method.
+2. **Dashboard `scope()`**, if the dashboard defines the method. Its `where`s are grouped in
+   parentheses, as a model's named scope would be, so an `orWhere` there cannot widen the rows past
+   `allowed()` or the filters.
 3. **Widget `->scope()`**, called with `$this` rebound to the widget.
 4. **Attributes** — `apply()` on each metric in declaration order, then on each dimension, adding
    the `SELECT` fragments and the `GROUP BY`.
