@@ -5,6 +5,7 @@ namespace Luminix\Bi\Services;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Luminix\Backend\Facades\Finder;
+use Luminix\Bi\Dashboard;
 
 class QueryService
 {
@@ -32,6 +33,21 @@ class QueryService
 
         return $query;
 
+    }
+
+    public static function forDashboard(Dashboard $dashboard): Builder
+    {
+        $query = static::create($dashboard->model);
+
+        if (!method_exists($dashboard, 'scope')) {
+            return $query;
+        }
+
+        // callScope() groups the scope's wheres like a named scope's, so an orWhere there
+        // can't widen the rows past allowed() or the filters applied after it.
+        return (function () use ($dashboard) {
+            return $this->callScope([$dashboard, 'scope']);
+        })->call($query);
     }
 
 }

@@ -118,6 +118,16 @@ class ConnectionConfigTest extends TestCase
         $this->assertCount(3, $extra['options']);
     }
 
+    public function test_string_filter_extra_uses_default_connection_when_not_configured(): void
+    {
+        config(['luminix.bi.connection' => null]);
+
+        $extra = StringFilter::create('id', 'Id')
+            ->extra($this->makeDashboard(), $this->makeBiRequest());
+
+        $this->assertCount(2, $extra['options']);
+    }
+
     public function test_string_filter_extra_uses_configured_connection(): void
     {
         config(['luminix.bi.connection' => 'bi_replica']);

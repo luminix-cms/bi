@@ -18,17 +18,12 @@ class StringFilter extends BaseFilter
 
     public function extra(Dashboard $dashboard, BiRequest $request): array
     {
-        // Same base as BaseWidget::getBaseBuilder(): options can't list values outside the rows' scope.
-        $baseQuery = QueryService::create($dashboard->model);
-
-        $builder = method_exists($dashboard, 'scope')
-            ? $dashboard->scope($baseQuery)
-            : $baseQuery;
-
-        $column = $builder->qualifyColumn($this->column);
-
         return [
-            'options' => $builder->select($column)->distinct()->pluck($column)
+            'options' => QueryService::forDashboard($dashboard)
+                ->select($this->column)
+                ->distinct()
+                ->reorder($this->column)
+                ->pluck($this->column)
         ];
     }
 }

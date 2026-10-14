@@ -83,14 +83,7 @@ abstract class BaseWidget implements \JsonSerializable, Widget
 
     protected function getBaseBuilder(Dashboard $dashboard): Builder
     {
-
-        $connection = config('luminix.bi.connection');
-
-        $baseQuery = QueryService::create($dashboard->model);
-
-        $builder = method_exists($dashboard, 'scope')
-            ? $dashboard->scope($baseQuery)
-            : $baseQuery;
+        $builder = QueryService::forDashboard($dashboard);
 
         $builder = $this->scope->call($this, $builder);
 
