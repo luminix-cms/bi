@@ -13,7 +13,7 @@ public function scope(Builder $builder): Builder
 }
 ```
 
-O método é opcional. Quando declarado, é aplicado antes dos filtros do usuário — portanto qualquer condição colocada aqui estará sempre presente na query final.
+O método é opcional. Quando declarado, é aplicado antes dos filtros do usuário — portanto qualquer condição colocada aqui estará sempre presente na query final. As condições do `scope()` ficam agrupadas entre parênteses, então um `orWhere` aqui não amplia o resultado além do `allowed()` nem dos filtros.
 
 O mesmo escopo também recorta as opções do [`StringFilter`](../07-filtros/02-string.md), para que o seletor não ofereça valores fora das linhas visíveis.
 

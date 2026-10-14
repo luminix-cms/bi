@@ -49,11 +49,16 @@ subquery and the option list, and is called with `$this` rebound to the filter.
 
 Only two filters answer the filter endpoint with anything:
 
-- `StringFilter` returns the distinct values of its column, built on the same base query as the
-  widget rows: the BI connection, `allowed()` for a Luminix model, and the dashboard's `scope()`
-  (-> `query-pipeline.md`). The option list never offers values outside the rows the user sees
+- `StringFilter` returns the distinct values of its column, sorted, built on the same base query as
+  the widget rows: the BI connection, `allowed()` for a Luminix model, and the dashboard's `scope()`
+  (-> `query-pipeline.md`). Widget `->scope()`s and the other filters are not applied, so the list
+  covers the dashboard's rows, not one widget's. When the dashboard's `scope()` joins a table that
+  shares the column name, qualify it — `->column('orders.status')` — or both the list and `apply()`
+  fail as ambiguous
 - `RelationFilter` returns `{options, otherColumn, primaryKey}`, selecting the primary key and
   `otherColumn` (falling back to `name`) from the related model through the same query service the
-  widgets use — so the connection and, for a Luminix model, `allowed()` do apply here
+  widgets use — so the connection and, for a Luminix model, `allowed()` do apply here. The
+  dashboard's `scope()` does not: the list holds every related record `allowed()` and the filter's
+  `->scope()` let through, whether or not a dashboard row references it
 
 Every other filter returns an empty `extra`.

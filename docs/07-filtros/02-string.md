@@ -57,7 +57,9 @@ Mesmo que o usuário selecione apenas um valor, ele deve ser enviado como array:
 }
 ```
 
-As opções partem da mesma base de dados das linhas dos widgets: a connection configurada em `luminix.bi.connection`, o `allowed()` de um model Luminix e o `scope()` do dashboard (veja [Escopo Global](../03-dashboards/03-escopo.md)). Com isso, um usuário de escopo limitado só recebe os valores das linhas que ele já enxerga.
+As opções vêm ordenadas e partem da mesma base de dados das linhas dos widgets: a connection configurada em `luminix.bi.connection`, o `allowed()` de um model Luminix e o `scope()` do dashboard (veja [Escopo Global](../03-dashboards/03-escopo.md)). O `->scope()` de cada widget e os demais filtros não entram, então a lista cobre as linhas do dashboard, não as de um widget específico.
+
+Se o `scope()` do dashboard fizer join com uma tabela que tem uma coluna de mesmo nome, qualifique a coluna do filtro — `->column('orders.status')` —, senão tanto as opções quanto o filtro aplicado aos widgets falham por ambiguidade.
 
 O frontend usa esse array `options` para popular o dropdown ou lista de checkboxes. Não é necessário manter uma lista estática de opções — o controle sempre refletirá os valores presentes no banco.
 
