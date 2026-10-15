@@ -33,12 +33,13 @@ class ConnectionConfigTest extends TestCase
         // Default connection (name varies by Testbench version — use Schema without arg)
         Schema::create('foo', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('bar_id')->nullable();
         });
         Schema::create('bar', function (Blueprint $table) {
             $table->id();
             $table->string('name');
         });
-        DB::table('foo')->insert([['id' => 1], ['id' => 2]]);
+        DB::table('foo')->insert([['id' => 1, 'bar_id' => 1], ['id' => 2, 'bar_id' => 2]]);
         DB::table('bar')->insert([
             ['id' => 1, 'name' => 'A'],
             ['id' => 2, 'name' => 'B'],
@@ -47,12 +48,13 @@ class ConnectionConfigTest extends TestCase
         // Replica connection: 3 rows in each table (different count to distinguish)
         Schema::connection('bi_replica')->create('foo', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('bar_id')->nullable();
         });
         Schema::connection('bi_replica')->create('bar', function (Blueprint $table) {
             $table->id();
             $table->string('name');
         });
-        DB::connection('bi_replica')->table('foo')->insert([['id' => 1], ['id' => 2], ['id' => 3]]);
+        DB::connection('bi_replica')->table('foo')->insert([['id' => 1, 'bar_id' => 1], ['id' => 2, 'bar_id' => 2], ['id' => 3, 'bar_id' => 3]]);
         DB::connection('bi_replica')->table('bar')->insert([
             ['id' => 1, 'name' => 'X'],
             ['id' => 2, 'name' => 'Y'],

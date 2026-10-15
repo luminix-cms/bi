@@ -12,6 +12,8 @@ class RelationFilter extends BaseRelationFilter
     public $component = 'belongs-to';
     public $scope;
 
+    protected bool $narrowOptions = true;
+
     public function __construct($key, $name)
     {
         parent::__construct($key, $name);
@@ -34,19 +36,40 @@ class RelationFilter extends BaseRelationFilter
         $primaryKey = $this->getRelatedModel($builder)->getKeyName(); 
 
         return $builder->whereHas($this->relation, function ($query) use ($filterData, $primaryKey) {
-            $query = $this->scope->call($this, $query);
-            $query->whereIn($primaryKey, $filterData);
+            $this->applyScope($query)->whereIn($primaryKey, $filterData);
         });
+    }
+
+    /**
+     * Runs the filter's ->scope() grouped, so an orWhere in it can't widen the selection or the options
+     */
+    private function applyScope(Builder $query): Builder
+    {
+        return QueryService::scoped($query, $this->scope->bindTo($this, $this));
+    }
+
+    /**
+     * List every related record, whether or not a dashboard row references it
+     */
+    public function allOptions(): static
+    {
+        $this->narrowOptions = false;
+
+        return $this;
     }
 
     public function extra(Dashboard $dashboard, BiRequest $request): array
     {
         $related = $this->getRelatedModel($dashboard);
 
-        $query = QueryService::create($related);
+        $query = $this->applyScope(QueryService::create($related));
+
+        if ($this->narrowOptions) {
+            $this->narrowToDashboard($query, $dashboard);
+        }
 
         return [
-            'options'     => $this->scope->call($this, $query)->select($related->getKeyName(), $this->otherColumn ?? 'name')->get(),
+            'options'     => $query->select($related->getKeyName(), $this->otherColumn ?? 'name')->get(),
             'otherColumn' => $this->otherColumn,
             'primaryKey'  => $related->getKeyName(),
         ];

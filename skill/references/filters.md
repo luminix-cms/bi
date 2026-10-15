@@ -43,7 +43,9 @@ Filters have no `jsonSerialize()`, so what the frontend receives is their public
 The relation name defaults to the filter key; `->relation()` overrides it and accepts a dotted path
 (`'company.sector'`), which is walked to find the related model and then handed to `whereHas` as-is.
 `->otherColumn('name')` names the label column, `->scope(Closure)` narrows both the matching
-subquery and the option list, and is called with `$this` rebound to the filter.
+subquery and the option list, and is called with `$this` rebound to the filter. Its wheres are
+grouped, so an `orWhere` in it can't widen the selection past the ids the user picked. `->allOptions()`
+lists every related record instead of only the ones the dashboard's rows reach (-> Option lists).
 
 ## Option lists
 
@@ -56,9 +58,23 @@ Only two filters answer the filter endpoint with anything:
   shares the column name, qualify it — `->column('orders.status')` — or both the list and `apply()`
   fail as ambiguous
 - `RelationFilter` returns `{options, otherColumn, primaryKey}`, selecting the primary key and
-  `otherColumn` (falling back to `name`) from the related model through the same query service the
-  widgets use — so the connection and, for a Luminix model, `allowed()` do apply here. The
-  dashboard's `scope()` does not: the list holds every related record `allowed()` and the filter's
-  `->scope()` let through, whether or not a dashboard row references it
+  `otherColumn` (falling back to `name`) from the related model, restricted to the records the
+  dashboard's rows reach through the relation: the base query is the same one the widgets use (BI
+  connection, `allowed()` for a Luminix model, the dashboard's `scope()`), and the relation path is
+  followed from it. A related record no dashboard row references is not listed, so a category with
+  no orders is absent. On top of that the related model's own `allowed()` and the filter's
+  `->scope()` apply; that `->scope()` is grouped like the dashboard's, so an `orWhere` in it can't
+  widen the list past the restriction. `->allOptions()` drops the restriction to the dashboard's rows
+  and keeps those two. Widget `->scope()`s and the other filters are not applied, so the list covers
+  the dashboard's rows, not one widget's
+  - the path may be dotted and cross `BelongsTo`, `HasOne`, `HasMany`, `BelongsToMany` and
+    `MorphOne`/`MorphMany` relations. `HasManyThrough`, `HasOneThrough`, `MorphTo` and `MorphToMany`
+    can't be followed: `extra()` throws a `LogicException` naming `->allOptions()`
+  - models the path crosses contribute only their global scopes (`SoftDeletes`): their `allowed()`
+    is not applied, as in `apply()`'s `whereHas`, and constraints declared inside the relation method
+    (`->where()`, `wherePivot()`) are ignored, so such a relation can offer a record that matches no
+    row
+  - the restriction is an `IN (subquery)` over the dashboard's rows; on a large table whose foreign
+    key has no index, `->allOptions()` avoids the cost
 
 Every other filter returns an empty `extra`.

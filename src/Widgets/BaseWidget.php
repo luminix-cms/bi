@@ -83,11 +83,8 @@ abstract class BaseWidget implements \JsonSerializable, Widget
 
     protected function getBaseBuilder(Dashboard $dashboard): Builder
     {
-        $builder = QueryService::forDashboard($dashboard);
-
-        $builder = $this->scope->call($this, $builder);
-
-        return $builder;
+        // grouped, so an orWhere in it can't escape the dashboard's rows or the filters applied after it
+        return QueryService::scoped(QueryService::forDashboard($dashboard), $this->scope->bindTo($this, $this));
     }
 
     protected function applyAttributes(Builder $builder): Builder
