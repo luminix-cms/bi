@@ -36,9 +36,16 @@ class RelationFilter extends BaseRelationFilter
         $primaryKey = $this->getRelatedModel($builder)->getKeyName(); 
 
         return $builder->whereHas($this->relation, function ($query) use ($filterData, $primaryKey) {
-            $query = $this->scope->call($this, $query);
-            $query->whereIn($primaryKey, $filterData);
+            $this->applyScope($query)->whereIn($primaryKey, $filterData);
         });
+    }
+
+    /**
+     * Runs the filter's ->scope() grouped, so an orWhere in it can't widen the selection or the options
+     */
+    private function applyScope(Builder $query): Builder
+    {
+        return QueryService::scoped($query, $this->scope->bindTo($this, $this));
     }
 
     /**
@@ -55,7 +62,7 @@ class RelationFilter extends BaseRelationFilter
     {
         $related = $this->getRelatedModel($dashboard);
 
-        $query = QueryService::scoped(QueryService::create($related), $this->scope->bindTo($this, $this));
+        $query = $this->applyScope(QueryService::create($related));
 
         if ($this->narrowOptions) {
             $this->narrowToDashboard($query, $dashboard);

@@ -118,6 +118,17 @@ class RelationFilterTest extends AbstractFilterTestCase
         $this->assertEquals([], $this->names($filter, $this->tenantDashboard()));
     }
 
+    public function test_or_where_in_the_filter_scope_does_not_widen_the_selection(): void
+    {
+        // Bruno is inside the scope but outside the selection: his order must not come back
+        $filter = RelationFilter::create('customer', 'Customer')
+            ->scope(fn (Builder $builder) => $builder->where('name', 'Bruno')->orWhere('name', 'Ana'));
+
+        $orders = $filter->apply(OrderModel::query(), [1], $this->makeBiRequest())->pluck('id')->sort()->values()->all();
+
+        $this->assertSame([1, 2], $orders);
+    }
+
     public function test_filter_scope_can_still_order_the_options(): void
     {
         $filter = RelationFilter::create('customer', 'Customer')
