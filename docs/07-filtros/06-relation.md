@@ -63,6 +63,8 @@ RelationFilter::create('category', 'Category')
 
 Com esse escopo, o dropdown exibirá apenas categorias ativas, e o `whereHas` também filtrará apenas entre categorias ativas.
 
+Os wheres do `->scope()` ficam agrupados, tanto nas opções quanto no `whereHas`. Um `orWhere` dentro dele não alarga a seleção: a query é `(escopo) AND id IN (seleção)`, e uma seleção nunca devolve linhas fora dela.
+
 ## O Método `extra()` — Opções para o Dropdown
 
 `RelationFilter` implementa `extra()`, chamado pelo endpoint `GET /bi-apis/{dashboard}/filters/{filter}`. Ele retorna a lista de registros do modelo relacionado para popular o dropdown:

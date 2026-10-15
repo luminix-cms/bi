@@ -43,7 +43,8 @@ Filters have no `jsonSerialize()`, so what the frontend receives is their public
 The relation name defaults to the filter key; `->relation()` overrides it and accepts a dotted path
 (`'company.sector'`), which is walked to find the related model and then handed to `whereHas` as-is.
 `->otherColumn('name')` names the label column, `->scope(Closure)` narrows both the matching
-subquery and the option list, and is called with `$this` rebound to the filter. `->allOptions()`
+subquery and the option list, and is called with `$this` rebound to the filter. Its wheres are
+grouped, so an `orWhere` in it can't widen the selection past the ids the user picked. `->allOptions()`
 lists every related record instead of only the ones the dashboard's rows reach (-> Option lists).
 
 ## Option lists
