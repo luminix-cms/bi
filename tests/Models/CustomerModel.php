@@ -27,4 +27,9 @@ class CustomerModel extends Model
     {
         return $this->morphMany(NoteModel::class, 'noteable');
     }
+
+    public function labels()
+    {
+        return $this->morphToMany(TagModel::class, 'taggable', 'taggables', 'taggable_id', 'tag_id');
+    }
 }
