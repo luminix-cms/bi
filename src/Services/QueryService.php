@@ -43,10 +43,19 @@ class QueryService
             return $query;
         }
 
-        // callScope() groups the scope's wheres like a named scope's, so an orWhere there
-        // can't widen the rows past allowed() or the filters applied after it.
-        return (function () use ($dashboard) {
-            return $this->callScope([$dashboard, 'scope']);
+        return static::scoped($query, [$dashboard, 'scope']);
+    }
+
+    /**
+     * Runs a scope over the query, grouping the wheres it adds
+     *
+     * callScope() groups them like a named scope's, so an orWhere there can't widen the rows
+     * past allowed() or the constraints applied after it.
+     */
+    public static function scoped(Builder $query, callable $scope): Builder
+    {
+        return (function () use ($scope) {
+            return $this->callScope($scope);
         })->call($query);
     }
 

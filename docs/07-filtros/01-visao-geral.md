@@ -73,7 +73,7 @@ DateIntervalFilter::create('period', 'Period')
 `StringFilter` e `RelationFilter` implementam o método `extra()`, que é chamado pelo endpoint `GET /bi-apis/{dashboard}/filters/{filter}` quando o frontend precisa carregar as opções de um controle (select, dropdown).
 
 - `StringFilter::extra()` retorna os valores distintos da coluna para popular um select.
-- `RelationFilter::extra()` retorna a lista de registros do modelo relacionado com `id` e nome para montar o dropdown.
+- `RelationFilter::extra()` retorna os registros do modelo relacionado que as linhas do dashboard referenciam, com `id` e nome, para montar o dropdown. `->allOptions()` lista todos.
 
 Os demais filtros (`NumberFilter`, `DateFilter`, `DateIntervalFilter`) não possuem `extra()` — o frontend renderiza os campos sem precisar carregar opções do backend.
 

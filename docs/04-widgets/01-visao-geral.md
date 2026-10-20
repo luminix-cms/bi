@@ -100,7 +100,7 @@ BigNumber::create('vip-revenue', 'Receita Clientes VIP')
     ->metric(SumMetric::create('total_amount', 'Receita'));
 ```
 
-O escopo do widget é aplicado **após** o escopo do dashboard — ambas as restrições coexistem na mesma query.
+O escopo do widget é aplicado **após** o escopo do dashboard — ambas as restrições coexistem na mesma query. As condições do `scope()` do widget ficam agrupadas entre parênteses, então um `orWhere` nele não amplia o resultado além do escopo do dashboard, do `allowed()` nem dos filtros.
 
 ---
 

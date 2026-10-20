@@ -33,10 +33,12 @@ Isso gera:
 ```sql
 WHERE EXISTS (
     SELECT 1 FROM `categories`
-    WHERE `categories`.`order_id` = `orders`.`id`
+    WHERE `orders`.`category_id` = `categories`.`id`
     AND `categories`.`id` IN (5, 8)
 )
 ```
+
+A chave do `IN` é qualificada pela tabela do modelo relacionado, ou pelo alias que o `whereHas` dá a uma auto-relação. Por isso as relações que fazem join (`HasManyThrough`, `HasOneThrough`, `BelongsToMany` e `MorphToMany`) funcionam mesmo quando a tabela intermediária ou o pivot tem um `id` próprio. As colunas usadas dentro do `->scope()` não ganham essa qualificação: numa relação com join, qualifique-as com `$builder->qualifyColumn('coluna')` quando a outra tabela tiver uma coluna de mesmo nome. Escrever o nome da tabela à mão erra numa auto-relação, onde o `whereHas` troca a tabela pelo alias; o `qualifyColumn()` devolve o alias no `whereHas` e a tabela nas opções.
 
 ## Relações Aninhadas
 
@@ -63,6 +65,8 @@ RelationFilter::create('category', 'Category')
 
 Com esse escopo, o dropdown exibirá apenas categorias ativas, e o `whereHas` também filtrará apenas entre categorias ativas.
 
+Os wheres do `->scope()` ficam agrupados, tanto nas opções quanto no `whereHas`. Um `orWhere` dentro dele não alarga a seleção: a query é `(escopo) AND id IN (seleção)`, e uma seleção nunca devolve linhas fora dela.
+
 ## O Método `extra()` — Opções para o Dropdown
 
 `RelationFilter` implementa `extra()`, chamado pelo endpoint `GET /bi-apis/{dashboard}/filters/{filter}`. Ele retorna a lista de registros do modelo relacionado para popular o dropdown:
@@ -82,6 +86,35 @@ Com esse escopo, o dropdown exibirá apenas categorias ativas, e o `whereHas` ta
 ```
 
 O frontend usa `primaryKey` para saber qual campo enviar como valor na request, e `otherColumn` para saber qual campo exibir como rótulo.
+
+### Quais registros aparecem
+
+As opções são os registros do modelo relacionado **que as linhas do dashboard referenciam**. Elas partem da mesma base de dados das linhas dos widgets: a connection configurada em `luminix.bi.connection`, o `allowed()` do modelo do dashboard, se for um modelo Luminix, e o `scope()` do dashboard (veja [Escopo Global](../03-dashboards/03-escopo.md)). Dessas linhas, o filtro segue a relação até o modelo relacionado. Sobre os registros alcançados ainda valem o `allowed()` do modelo relacionado e o `->scope()` do filtro.
+
+Num dashboard recortado por tenant, um `RelationFilter` de `customer` lista só os clientes que têm pedidos daquele tenant, mesmo que `Customer` seja um modelo Eloquent comum.
+
+O `->scope()` de cada widget e os demais filtros não entram, então a lista cobre as linhas do dashboard, não as de um widget específico.
+
+O recorte vale também para relações aninhadas (`'company.sector'`) e para `HasOne`, `HasMany`, `BelongsToMany`, `MorphOne`/`MorphMany`, `MorphToMany` (inclusive `morphedByMany`), `HasOneThrough` e `HasManyThrough`. Nos modelos que o caminho atravessa, só valem os escopos globais do próprio modelo, como `SoftDeletes`; no modelo intermediário de um `HasManyThrough`/`HasOneThrough`, só o `SoftDeletes`. O `allowed()` desses modelos fica de fora, e o `whereHas` do filtro também não o aplica, então a lista bate com o que o `apply()` encontra.
+
+As restrições declaradas no método da relação (`hasMany(...)->where('active', true)`, `wherePivot()`) também ficam de fora do recorte, ao contrário do `whereHas`, que as aplica. Uma relação assim pode oferecer um registro que, ao ser selecionado, não devolve linhas.
+
+> Um registro que nenhuma linha referencia **não aparece**: uma categoria sem pedidos some da lista, porque selecioná-la não devolveria nada.
+
+### `->allOptions()` — listar todos os registros
+
+Para um catálogo que deve aparecer inteiro, use `->allOptions()`. Ele desliga o recorte pelas linhas do dashboard e restaura a lista de todos os registros que o `allowed()` e o `->scope()` do filtro deixam passar:
+
+```php
+RelationFilter::create('category', 'Category')
+    ->allOptions(),
+```
+
+Use-o também quando a query do recorte ficar cara. Em tabelas grandes, o recorte faz um `IN (subquery)` sobre as linhas do dashboard, e uma chave estrangeira sem índice pesa.
+
+Uma relação fora das classes listadas acima, como as de pacotes de terceiros, não pode ser seguida a partir das linhas do dashboard. Com ela, `extra()` lança uma `LogicException` que pede `->allOptions()`, e com `->allOptions()` a lista volta a trazer os registros dessa relação.
+
+O `RelationFilter` não suporta `MorphTo`. O modelo relacionado muda de linha para linha, e o Eloquent devolve como relacionado o próprio modelo que declara a relação, então nem `->allOptions()` listaria os registros certos: `extra()` lança uma `LogicException` com ou sem ele.
 
 ## Próximos Passos
 

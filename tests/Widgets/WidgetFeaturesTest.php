@@ -2,6 +2,8 @@
 
 namespace Luminix\Bi\Tests\Widgets;
 
+use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -41,22 +43,29 @@ class WidgetFeaturesTest extends TestCase
         ]);
     }
 
-    private function makeDashboard(?array $filters = []): Dashboard
+    private function makeDashboard(?array $filters = [], ?Closure $scope = null): Dashboard
     {
         $filterList = $filters;
 
-        return new class($filterList) extends Dashboard {
+        return new class($filterList, $scope) extends Dashboard {
             public $model = FooModel::class;
             private array $filterList;
+            private ?Closure $scopeUsing;
 
-            public function __construct(array $filterList)
+            public function __construct(array $filterList, ?Closure $scopeUsing)
             {
                 $this->filterList = $filterList;
+                $this->scopeUsing = $scopeUsing;
             }
 
             public function widgets(): array { return []; }
 
             public function filters(): array { return $this->filterList; }
+
+            public function scope(Builder $builder): Builder
+            {
+                return $this->scopeUsing ? ($this->scopeUsing)($builder) : $builder;
+            }
         };
     }
 
@@ -304,6 +313,33 @@ class WidgetFeaturesTest extends TestCase
             ->metrics([CountMetric::create('count', 'Count')]);
 
         $result = $widget->data($this->makeDashboard(), $this->makeBiRequest());
+
+        $this->assertEquals(1, $result->first()->count);
+    }
+
+    public function test_or_where_in_the_widget_scope_does_not_escape_the_dashboard_scope(): void
+    {
+        // Beta is outside the dashboard's rows: the widget scope can only narrow them
+        $widget = BigNumber::create('count', 'Count')
+            ->scope(fn ($builder) => $builder->where('amount', 100)->orWhere('amount', 200))
+            ->metrics([CountMetric::create('count', 'Count')]);
+
+        $dashboard = $this->makeDashboard([], fn (Builder $builder) => $builder->where('name', 'Alpha'));
+
+        $result = $widget->data($dashboard, $this->makeBiRequest());
+
+        $this->assertEquals(1, $result->first()->count);
+    }
+
+    public function test_or_where_in_the_widget_scope_does_not_escape_the_requested_filters(): void
+    {
+        // the Beta row matches the scope's first branch but not the name filter
+        $widget = BigNumber::create('count', 'Count')
+            ->scope(fn ($builder) => $builder->where('amount', 200)->orWhere('amount', 100))
+            ->metrics([CountMetric::create('count', 'Count')]);
+
+        $request = $this->makeBiRequest(['filters' => ['name' => ['Alpha']]]);
+        $result  = $widget->data($this->makeDashboard([StringFilter::create('name', 'Name')]), $request);
 
         $this->assertEquals(1, $result->first()->count);
     }
