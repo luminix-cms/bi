@@ -22,4 +22,14 @@ class CompanyModel extends Model
     {
         return $this->hasManyThrough(OrderModel::class, CustomerModel::class, 'company_id', 'customer_id');
     }
+
+    public function firstOrder()
+    {
+        return $this->hasOneThrough(OrderModel::class, CustomerModel::class, 'company_id', 'customer_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(self::class, 'parent_id');
+    }
 }

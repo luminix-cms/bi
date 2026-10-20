@@ -23,6 +23,11 @@ class CustomerModel extends Model
         return $this->belongsToMany(TagModel::class, 'customer_tag', 'customer_id', 'tag_id');
     }
 
+    public function labels()
+    {
+        return $this->morphToMany(TagModel::class, 'taggable', 'taggables', 'taggable_id', 'tag_id');
+    }
+
     public function notes()
     {
         return $this->morphMany(NoteModel::class, 'noteable');
