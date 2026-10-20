@@ -19,6 +19,7 @@ use Luminix\Bi\Tests\Models\NoteModel;
 use Luminix\Bi\Tests\Models\OrderModel;
 use Luminix\Bi\Tests\Models\SectorModel;
 use Luminix\Bi\Tests\Models\TagModel;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 class RelationFilterTest extends AbstractFilterTestCase
 {
@@ -218,6 +219,93 @@ class RelationFilterTest extends AbstractFilterTestCase
         $this->assertArrayNotHasKey('narrowOptions', $published);
     }
 
+    public function test_apply_through_a_has_many_through_qualifies_the_key(): void
+    {
+        $this->assertSame(['Globex'], $this->owners(CompanyModel::class, 'orders', [3]));
+    }
+
+    public function test_apply_through_a_has_one_through_qualifies_the_key(): void
+    {
+        $this->assertSame(['Globex'], $this->owners(CompanyModel::class, 'firstOrder', [3]));
+    }
+
+    public function test_apply_through_a_belongs_to_many_with_a_pivot_id_qualifies_the_key(): void
+    {
+        $this->assertSame(['Ana', 'Bruno'], $this->owners(CustomerModel::class, 'tags', [2]));
+    }
+
+    public function test_apply_through_a_morph_to_many_with_a_pivot_id_qualifies_the_key(): void
+    {
+        $this->assertSame(['Bruno', 'Carla'], $this->owners(CustomerModel::class, 'labels', [2]));
+    }
+
+    public function test_apply_on_a_self_relation_qualifies_the_key_by_the_alias_not_the_table(): void
+    {
+        // Globex (2) is Acme's child: the key is the child's, so the parent is the one that comes back
+        $this->assertSame(['Acme'], $this->owners(CompanyModel::class, 'children', [2]));
+        $this->assertSame([], $this->owners(CompanyModel::class, 'children', [1]));
+    }
+
+    public function test_scope_qualifies_its_columns_by_the_table_or_alias_of_the_query_it_receives(): void
+    {
+        $filter = RelationFilter::create('children', 'Child')
+            ->scope(fn (Builder $builder) => $builder->where($builder->qualifyColumn('name'), 'Globex'));
+
+        // apply(): the query is the aliased subquery, so the child's name is the one compared
+        $owners = $filter->apply(CompanyModel::query(), [2], $this->makeBiRequest())->pluck('name')->all();
+        $this->assertSame(['Acme'], $owners);
+
+        // options: the same scope lands on the real table
+        $this->assertSame(['Globex'], $this->names($filter, $this->dashboard(CompanyModel::class)));
+    }
+
+    public function test_apply_qualifies_the_key_of_a_nested_path_ending_in_a_join(): void
+    {
+        $owners = RelationFilter::create('tags', 'Tag')->relation('customers.tags')
+            ->apply(CompanyModel::query(), [2], $this->makeBiRequest())
+            ->pluck('name')->sort()->values()->all();
+
+        $this->assertSame(['Acme', 'Globex'], $owners);
+    }
+
+    #[DataProvider('joinedRelations')]
+    public function test_every_option_of_a_relation_with_a_join_matches_what_apply_finds(string $model, string $relation, string $label, array $expected): void
+    {
+        $dashboard = $this->dashboard($model);
+        $filter    = RelationFilter::create($relation, ucfirst($relation))->otherColumn($label);
+        $offered   = collect($filter->extra($dashboard, $this->makeBiRequest())['options'])->pluck('id')->all();
+
+        // the narrowed list holds exactly the records apply() finds rows for
+        $this->assertEqualsCanonicalizing(array_keys(array_filter($expected)), $offered);
+
+        foreach ($expected as $id => $owners) {
+            $found = $filter->apply(QueryService::forDashboard($dashboard), [$id], $this->makeBiRequest())
+                ->pluck('name')->sort()->values()->all();
+
+            $this->assertSame($owners, $found, "{$relation} #{$id}");
+        }
+    }
+
+    public static function joinedRelations(): array
+    {
+        // whereHas() on a HasOneThrough doesn't stop at the first row, so it finds what the HasManyThrough does
+        $ordersByCompany = [1 => ['Acme'], 2 => ['Acme'], 3 => ['Globex'], 4 => ['Initech'], 5 => []];
+
+        return [
+            'has many through'  => [CompanyModel::class, 'orders', 'tenant', $ordersByCompany],
+            'has one through'   => [CompanyModel::class, 'firstOrder', 'tenant', $ordersByCompany],
+            'belongs to many'   => [CustomerModel::class, 'tags', 'name', [1 => ['Ana'], 2 => ['Ana', 'Bruno'], 3 => ['Carla'], 4 => []]],
+            'morph to many'     => [CustomerModel::class, 'labels', 'name', [1 => ['Ana'], 2 => ['Bruno', 'Carla'], 3 => [], 4 => []]],
+        ];
+    }
+
+    private function owners(string $model, string $relation, array $ids): array
+    {
+        return RelationFilter::create($relation, ucfirst($relation))
+            ->apply($model::query(), $ids, $this->makeBiRequest())
+            ->pluck('name')->sort()->values()->all();
+    }
+
     private function names(RelationFilter $filter, Dashboard $dashboard, bool $sort = true): array
     {
         $filter->otherColumn($filter->otherColumn ?? 'name');
@@ -286,6 +374,7 @@ class RelationFilterTest extends AbstractFilterTestCase
             $table->id();
             $table->string('name');
             $table->unsignedBigInteger('sector_id')->nullable();
+            $table->unsignedBigInteger('parent_id')->nullable();
         });
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
@@ -302,11 +391,14 @@ class RelationFilterTest extends AbstractFilterTestCase
             $table->id();
             $table->string('name');
         });
+        // the pivots carry their own `id`, so an unqualified key in apply() is ambiguous
         Schema::create('customer_tag', function (Blueprint $table) {
+            $table->id();
             $table->unsignedBigInteger('customer_id');
             $table->unsignedBigInteger('tag_id');
         });
         Schema::create('taggables', function (Blueprint $table) {
+            $table->id();
             $table->unsignedBigInteger('tag_id');
             $table->unsignedBigInteger('taggable_id');
             $table->string('taggable_type');
@@ -325,7 +417,9 @@ class RelationFilterTest extends AbstractFilterTestCase
             ['name' => 'Retail'], ['name' => 'Industry'], ['name' => 'Logistics'], ['name' => 'Unused'],
         ]);
         DB::table('companies')->insert([
-            ['name' => 'Acme', 'sector_id' => 1], ['name' => 'Globex', 'sector_id' => 2], ['name' => 'Initech', 'sector_id' => 3],
+            ['name' => 'Acme', 'sector_id' => 1, 'parent_id' => null],
+            ['name' => 'Globex', 'sector_id' => 2, 'parent_id' => 1],
+            ['name' => 'Initech', 'sector_id' => 3, 'parent_id' => null],
         ]);
         DB::table('customers')->insert([
             ['name' => 'Ana', 'company_id' => 1, 'deleted_at' => null],
@@ -351,6 +445,7 @@ class RelationFilterTest extends AbstractFilterTestCase
         DB::table('taggables')->insert([
             ['tag_id' => 1, 'taggable_id' => 1, 'taggable_type' => CustomerModel::class],
             ['tag_id' => 2, 'taggable_id' => 2, 'taggable_type' => CustomerModel::class],
+            ['tag_id' => 2, 'taggable_id' => 3, 'taggable_type' => CustomerModel::class],
             ['tag_id' => 3, 'taggable_id' => 1, 'taggable_type' => 'other'],
             ['tag_id' => 1, 'taggable_id' => 2, 'taggable_type' => 'other'],
         ]);

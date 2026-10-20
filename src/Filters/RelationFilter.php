@@ -37,7 +37,9 @@ class RelationFilter extends BaseRelationFilter
         $primaryKey = $this->getRelatedModel($builder)->getKeyName(); 
 
         return $builder->whereHas($this->relation, function ($query) use ($filterData, $primaryKey) {
-            $this->applyScope($query)->whereIn($primaryKey, $filterData);
+            $key = $query->qualifyColumn($primaryKey); // a join or a self-relation has another `id`: this is the table or alias whereHas left
+
+            $this->applyScope($query)->whereIn($key, $filterData);
         });
     }
 
