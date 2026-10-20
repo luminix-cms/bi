@@ -108,7 +108,9 @@ RelationFilter::create('category', 'Category')
 
 Use-o também quando a query do recorte ficar cara. Em tabelas grandes, o recorte faz um `IN (subquery)` sobre as linhas do dashboard, e uma chave estrangeira sem índice pesa.
 
-Uma relação `MorphTo` não pode ser seguida a partir das linhas do dashboard. Com ela, `extra()` lança uma `LogicException` que pede `->allOptions()`.
+Uma relação fora das classes listadas acima, como as de pacotes de terceiros, não pode ser seguida a partir das linhas do dashboard. Com ela, `extra()` lança uma `LogicException` que pede `->allOptions()`, e com `->allOptions()` a lista volta a trazer os registros dessa relação.
+
+O `RelationFilter` não suporta `MorphTo`. O modelo relacionado muda de linha para linha, e o Eloquent devolve como relacionado o próprio modelo que declara a relação, então nem `->allOptions()` listaria os registros certos: `extra()` lança uma `LogicException` com ou sem ele.
 
 ## Próximos Passos
 

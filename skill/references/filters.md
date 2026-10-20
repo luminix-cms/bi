@@ -68,8 +68,10 @@ Only two filters answer the filter endpoint with anything:
   the dashboard's rows, not one widget's
   - the path may be dotted and cross `BelongsTo`, `HasOne`, `HasMany`, `BelongsToMany`,
     `MorphOne`/`MorphMany`, `MorphToMany` (`morphedByMany` too), `HasOneThrough` and
-    `HasManyThrough` relations. A `MorphTo` can't be followed: `extra()` throws a `LogicException`
-    naming `->allOptions()`
+    `HasManyThrough` relations. Any other relation class, such as one from a package, makes
+    `extra()` throw a `LogicException` naming `->allOptions()`, which lists that relation's records
+  - a `MorphTo` is not supported: its related model is the one declaring it, so `extra()` throws a
+    `LogicException` even with `->allOptions()`
   - models the path crosses contribute only their global scopes (`SoftDeletes`), and the
     intermediate model of a `*Through` relation only its `SoftDeletes`: their `allowed()` is not
     applied, as in `apply()`'s `whereHas`, and constraints declared inside the relation method
