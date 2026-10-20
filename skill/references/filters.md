@@ -46,6 +46,10 @@ The relation name defaults to the filter key; `->relation()` overrides it and ac
 subquery and the option list, and is called with `$this` rebound to the filter. Its wheres are
 grouped, so an `orWhere` in it can't widen the selection past the ids the user picked. `->allOptions()`
 lists every related record instead of only the ones the dashboard's rows reach (-> Option lists).
+`apply()` qualifies the primary key by the related table, or by the alias `whereHas` gives a
+self-relation, so relations that join a table (`HasManyThrough`, `HasOneThrough`, `BelongsToMany`,
+`MorphToMany`) work even when that table has its own `id`. The columns a `->scope()` uses are not
+qualified: on a joined relation, name the table in them when the other table shares the column.
 
 ## Option lists
 
