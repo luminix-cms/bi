@@ -4,6 +4,7 @@ namespace Luminix\Bi\Filters;
 
 use Luminix\Bi\Dashboard;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Luminix\Bi\Services\QueryService;
 use Luminix\Bi\Support\BiRequest;
 
@@ -11,6 +12,8 @@ class RelationFilter extends BaseRelationFilter
 {
     public $component = 'belongs-to';
     public $scope;
+
+    protected bool $narrowOptions = true;
 
     public function __construct($key, $name)
     {
@@ -39,14 +42,34 @@ class RelationFilter extends BaseRelationFilter
         });
     }
 
+    /**
+     * List every related record, whether or not a dashboard row references it
+     */
+    public function allOptions(): static
+    {
+        $this->narrowOptions = false;
+
+        return $this;
+    }
+
     public function extra(Dashboard $dashboard, BiRequest $request): array
     {
-        $related = $this->getRelatedModel($dashboard);
+        $relation = $this->getRelation($dashboard);
 
-        $query = QueryService::create($related);
+        if ($relation instanceof MorphTo) {
+            $this->cannotListMorphTo($this->relation);
+        }
+
+        $related = $relation->getRelated();
+
+        $query = QueryService::scoped(QueryService::create($related), $this->scope->bindTo($this, $this));
+
+        if ($this->narrowOptions) {
+            $this->narrowToDashboard($query, $dashboard);
+        }
 
         return [
-            'options'     => $this->scope->call($this, $query)->select($related->getKeyName(), $this->otherColumn ?? 'name')->get(),
+            'options'     => $query->select($related->getKeyName(), $this->otherColumn ?? 'name')->get(),
             'otherColumn' => $this->otherColumn,
             'primaryKey'  => $related->getKeyName(),
         ];
