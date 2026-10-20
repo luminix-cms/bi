@@ -17,6 +17,8 @@ use Luminix\Bi\Tests\Models\CustomerModel;
 use Luminix\Bi\Tests\Models\LuminixOrderModel;
 use Luminix\Bi\Tests\Models\NoteModel;
 use Luminix\Bi\Tests\Models\OrderModel;
+use Luminix\Bi\Tests\Models\SectorModel;
+use Luminix\Bi\Tests\Models\TagModel;
 
 class RelationFilterTest extends AbstractFilterTestCase
 {
@@ -75,15 +77,49 @@ class RelationFilterTest extends AbstractFilterTestCase
     {
         $this->actingAs(new GenericUser(['id' => 1, 'tenant' => 'b']));
 
-        $dashboard = $this->tenantDashboard();
-        $filter    = RelationFilter::create('customer', 'Customer');
-        $offered   = collect($filter->extra($dashboard, $this->makeBiRequest())['options'])->pluck('id')->all();
+        $this->assertOptionsMatchApply(RelationFilter::create('customer', 'Customer'), $this->tenantDashboard(), CustomerModel::class);
+    }
 
-        foreach (CustomerModel::all() as $customer) {
-            $matched = $filter->apply(QueryService::forDashboard($dashboard), [$customer->id], $this->makeBiRequest())->count();
+    public function test_options_of_a_morph_to_many_are_the_records_apply_can_match(): void
+    {
+        $this->assertOptionsMatchApply(RelationFilter::create('labels', 'Label'), $this->dashboard(CustomerModel::class), TagModel::class);
+        $this->assertOptionsMatchApply(RelationFilter::create('customers', 'Customer'), $this->dashboard(TagModel::class), CustomerModel::class);
+    }
 
-            $this->assertSame(in_array($customer->id, $offered), $matched > 0, "customer {$customer->name}");
-        }
+    public function test_options_of_a_has_many_through_follow_the_dashboard_rows(): void
+    {
+        $dashboard = $this->dashboard(CompanyModel::class, fn (Builder $builder) => $builder->where('companies.name', 'Acme'));
+
+        $this->assertEquals([1, 2], $this->keys(RelationFilter::create('orders', 'Order')->otherColumn('tenant'), $dashboard));
+    }
+
+    public function test_options_of_a_has_many_through_leave_out_trashed_intermediate_records(): void
+    {
+        // Bruno is trashed, so his order 3 is out of reach; order 5 has no customer
+        $filter = RelationFilter::create('orders', 'Order')->relation('ordersOfCurrentCustomers')->otherColumn('tenant');
+
+        $this->assertEquals([1, 2, 4], $this->keys($filter, $this->dashboard(CompanyModel::class)));
+    }
+
+    public function test_options_of_a_has_one_through_follow_the_dashboard_rows(): void
+    {
+        $dashboard = $this->dashboard(SectorModel::class, fn (Builder $builder) => $builder->where('sectors.name', 'Retail'));
+
+        $this->assertEquals(['Ana', 'Edu'], $this->names(RelationFilter::create('customer', 'Customer'), $dashboard));
+    }
+
+    public function test_options_of_a_morph_to_many_keep_to_the_morph_type(): void
+    {
+        $dashboard = $this->dashboard(CustomerModel::class, fn (Builder $builder) => $builder->where('customers.name', 'Ana'));
+
+        $this->assertEquals(['vip'], $this->names(RelationFilter::create('labels', 'Label'), $dashboard));
+    }
+
+    public function test_options_of_a_morphed_by_many_keep_to_the_morph_type(): void
+    {
+        $dashboard = $this->dashboard(TagModel::class, fn (Builder $builder) => $builder->where('tags.name', 'vip'));
+
+        $this->assertEquals(['Ana'], $this->names(RelationFilter::create('customers', 'Customer'), $dashboard));
     }
 
     public function test_options_of_a_has_many_follow_the_dashboard_rows(): void
@@ -153,33 +189,26 @@ class RelationFilterTest extends AbstractFilterTestCase
         $this->assertEquals(['Ana', 'Bruno', 'Carla'], $this->names(RelationFilter::create('customer', 'Customer'), $dashboard));
     }
 
-    public function test_a_relation_that_cannot_be_followed_asks_for_all_options(): void
+    public function test_a_morph_to_is_refused_without_pointing_to_all_options(): void
     {
-        $dashboard = $this->dashboard(CompanyModel::class);
-        $filter    = RelationFilter::create('orders', 'Order');
-
-        $this->expectException(LogicException::class);
-        $this->expectExceptionMessage('->allOptions()');
-
-        $filter->extra($dashboard, $this->makeBiRequest());
+        try {
+            RelationFilter::create('noteable', 'Noteable')->extra($this->dashboard(NoteModel::class), $this->makeBiRequest());
+            $this->fail('A MorphTo must not list options');
+        } catch (LogicException $e) {
+            $this->assertStringContainsString('MorphTo', $e->getMessage());
+            $this->assertStringNotContainsString('call ->allOptions()', $e->getMessage());
+        }
     }
 
-    public function test_a_morph_to_cannot_be_followed_either(): void
+    public function test_all_options_still_refuses_a_morph_to(): void
     {
-        $dashboard = $this->dashboard(NoteModel::class);
-        $filter    = RelationFilter::create('noteable', 'Noteable');
+        // the MorphTo's related model is the note itself: the list would be every note, of every tenant
+        $filter = RelationFilter::create('noteable', 'Noteable')->allOptions();
 
         $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('MorphTo');
 
-        $filter->extra($dashboard, $this->makeBiRequest());
-    }
-
-    public function test_all_options_still_works_for_a_relation_that_cannot_be_followed(): void
-    {
-        $dashboard = $this->dashboard(CompanyModel::class);
-        $filter    = RelationFilter::create('orders', 'Order')->otherColumn('tenant')->allOptions();
-
-        $this->assertCount(5, $filter->extra($dashboard, $this->makeBiRequest())['options']);
+        $filter->extra($this->dashboard(NoteModel::class), $this->makeBiRequest());
     }
 
     public function test_the_narrowing_flag_is_not_published_to_the_frontend(): void
@@ -202,6 +231,22 @@ class RelationFilterTest extends AbstractFilterTestCase
         }
 
         return $names;
+    }
+
+    private function keys(RelationFilter $filter, Dashboard $dashboard): array
+    {
+        return collect($filter->extra($dashboard, $this->makeBiRequest())['options'])->pluck('id')->sort()->values()->all();
+    }
+
+    private function assertOptionsMatchApply(RelationFilter $filter, Dashboard $dashboard, string $related): void
+    {
+        $offered = collect($filter->extra($dashboard, $this->makeBiRequest())['options'])->pluck('id')->all();
+
+        foreach ($related::all() as $record) {
+            $matched = $filter->apply(QueryService::forDashboard($dashboard), [$record->id], $this->makeBiRequest())->count();
+
+            $this->assertSame(in_array($record->id, $offered), $matched > 0, "{$filter->relation}: {$related} #{$record->id}");
+        }
     }
 
     private function dashboard(string $model = OrderModel::class, ?Closure $scope = null): Dashboard
@@ -246,6 +291,7 @@ class RelationFilterTest extends AbstractFilterTestCase
             $table->id();
             $table->string('name');
             $table->unsignedBigInteger('company_id')->nullable();
+            $table->softDeletes();
         });
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
@@ -259,6 +305,11 @@ class RelationFilterTest extends AbstractFilterTestCase
         Schema::create('customer_tag', function (Blueprint $table) {
             $table->unsignedBigInteger('customer_id');
             $table->unsignedBigInteger('tag_id');
+        });
+        Schema::create('taggables', function (Blueprint $table) {
+            $table->unsignedBigInteger('tag_id');
+            $table->unsignedBigInteger('taggable_id');
+            $table->string('taggable_type');
         });
         Schema::create('notes', function (Blueprint $table) {
             $table->id();
@@ -277,11 +328,11 @@ class RelationFilterTest extends AbstractFilterTestCase
             ['name' => 'Acme', 'sector_id' => 1], ['name' => 'Globex', 'sector_id' => 2], ['name' => 'Initech', 'sector_id' => 3],
         ]);
         DB::table('customers')->insert([
-            ['name' => 'Ana', 'company_id' => 1],
-            ['name' => 'Bruno', 'company_id' => 2],
-            ['name' => 'Carla', 'company_id' => 3],
-            ['name' => 'Davi', 'company_id' => null],
-            ['name' => 'Edu', 'company_id' => 1],
+            ['name' => 'Ana', 'company_id' => 1, 'deleted_at' => null],
+            ['name' => 'Bruno', 'company_id' => 2, 'deleted_at' => now()],
+            ['name' => 'Carla', 'company_id' => 3, 'deleted_at' => null],
+            ['name' => 'Davi', 'company_id' => null, 'deleted_at' => null],
+            ['name' => 'Edu', 'company_id' => 1, 'deleted_at' => null],
         ]);
         DB::table('orders')->insert([
             ['tenant' => 'a', 'customer_id' => 1],
@@ -296,6 +347,12 @@ class RelationFilterTest extends AbstractFilterTestCase
             ['customer_id' => 1, 'tag_id' => 2],
             ['customer_id' => 2, 'tag_id' => 2],
             ['customer_id' => 3, 'tag_id' => 3],
+        ]);
+        DB::table('taggables')->insert([
+            ['tag_id' => 1, 'taggable_id' => 1, 'taggable_type' => CustomerModel::class],
+            ['tag_id' => 2, 'taggable_id' => 2, 'taggable_type' => CustomerModel::class],
+            ['tag_id' => 3, 'taggable_id' => 1, 'taggable_type' => 'other'],
+            ['tag_id' => 1, 'taggable_id' => 2, 'taggable_type' => 'other'],
         ]);
         DB::table('notes')->insert([
             ['name' => 'call Ana', 'noteable_id' => 1, 'noteable_type' => CustomerModel::class],

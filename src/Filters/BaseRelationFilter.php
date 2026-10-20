@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\Relations\MorphOneOrMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
@@ -133,8 +135,8 @@ abstract class BaseRelationFilter extends BaseFilter
     {
         $relation = $from->getModel()->{$name}();
 
-        if ($relation instanceof MorphTo || $relation instanceof MorphToMany) {
-            $this->cannotNarrow($relation, $name);
+        if ($relation instanceof MorphTo) {
+            $this->cannotListMorphTo($name);
         }
 
         $related = $into ?? $relation->getRelated()->newQuery();
@@ -162,7 +164,26 @@ abstract class BaseRelationFilter extends BaseFilter
                 ->whereIn($relation->getQualifiedForeignPivotKeyName(), $this->keysOf($from, $relation->getQualifiedParentKeyName()))
                 ->select($relation->getQualifiedRelatedPivotKeyName());
 
+            if ($relation instanceof MorphToMany) {
+                $pivot->where($relation->qualifyPivotColumn($relation->getMorphType()), $relation->getMorphClass());
+            }
+
             return $related->whereIn($relation->getQualifiedRelatedKeyName(), $pivot);
+        }
+
+        if ($relation instanceof HasManyThrough || $relation instanceof HasOneThrough) {
+            $through = $relation->getParent();
+            $keys    = $related->getQuery()->newQuery()
+                ->from($through->getTable())
+                ->whereIn($relation->getQualifiedFirstKeyName(), $this->keysOf($from, $relation->getQualifiedLocalKeyName()))
+                ->select($relation->getQualifiedParentKeyName());
+
+            // whereHas() joins the through table with its SoftDeletes only, not its other global scopes
+            if ($relation->throughParentSoftDeletes()) {
+                $keys->whereNull($through->getQualifiedDeletedAtColumn());
+            }
+
+            return $related->whereIn($relation->getQualifiedFarKeyName(), $keys);
         }
 
         $this->cannotNarrow($relation, $name);
@@ -179,6 +200,19 @@ abstract class BaseRelationFilter extends BaseFilter
             'The options of filter "%s" cannot follow %s relation "%s" from the dashboard rows; call ->allOptions() to list every related record.',
             $this->key,
             class_basename($relation),
+            $name
+        ));
+    }
+
+    /**
+     * A MorphTo has no related model of its own: getRelated() is the model declaring it, so not even
+     * ->allOptions() would list the right records
+     */
+    protected function cannotListMorphTo(string $name): never
+    {
+        throw new LogicException(sprintf(
+            'Filter "%s" cannot list options for MorphTo relation "%s": its related model changes from row to row, so RelationFilter does not support it, with or without ->allOptions().',
+            $this->key,
             $name
         ));
     }
