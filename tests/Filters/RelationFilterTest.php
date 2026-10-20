@@ -272,16 +272,17 @@ class RelationFilterTest extends AbstractFilterTestCase
     public function test_every_option_of_a_relation_with_a_join_matches_what_apply_finds(string $model, string $relation, string $label, array $expected): void
     {
         $dashboard = $this->dashboard($model);
-        $filter    = RelationFilter::create($relation, ucfirst($relation))->otherColumn($label)->allOptions();
+        $filter    = RelationFilter::create($relation, ucfirst($relation))->otherColumn($label);
         $offered   = collect($filter->extra($dashboard, $this->makeBiRequest())['options'])->pluck('id')->all();
 
-        $this->assertEqualsCanonicalizing(array_keys($expected), $offered);
+        // the narrowed list holds exactly the records apply() finds rows for
+        $this->assertEqualsCanonicalizing(array_keys(array_filter($expected)), $offered);
 
-        foreach ($offered as $id) {
+        foreach ($expected as $id => $owners) {
             $found = $filter->apply(QueryService::forDashboard($dashboard), [$id], $this->makeBiRequest())
                 ->pluck('name')->sort()->values()->all();
 
-            $this->assertSame($expected[$id], $found, "{$relation} #{$id}");
+            $this->assertSame($owners, $found, "{$relation} #{$id}");
         }
     }
 
