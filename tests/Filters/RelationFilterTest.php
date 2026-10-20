@@ -217,6 +217,19 @@ class RelationFilterTest extends AbstractFilterTestCase
         $this->assertSame([], $this->owners(CompanyModel::class, 'children', [1]));
     }
 
+    public function test_scope_qualifies_its_columns_by_the_table_or_alias_of_the_query_it_receives(): void
+    {
+        $filter = RelationFilter::create('children', 'Child')
+            ->scope(fn (Builder $builder) => $builder->where($builder->qualifyColumn('name'), 'Globex'));
+
+        // apply(): the query is the aliased subquery, so the child's name is the one compared
+        $owners = $filter->apply(CompanyModel::query(), [2], $this->makeBiRequest())->pluck('name')->all();
+        $this->assertSame(['Acme'], $owners);
+
+        // options: the same scope lands on the real table
+        $this->assertSame(['Globex'], $this->names($filter, $this->dashboard(CompanyModel::class)));
+    }
+
     public function test_apply_qualifies_the_key_of_a_nested_path_ending_in_a_join(): void
     {
         $owners = RelationFilter::create('tags', 'Tag')->relation('customers.tags')
