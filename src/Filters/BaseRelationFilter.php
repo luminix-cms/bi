@@ -136,7 +136,7 @@ abstract class BaseRelationFilter extends BaseFilter
         $relation = $from->getModel()->{$name}();
 
         if ($relation instanceof MorphTo) {
-            $this->cannotNarrow($relation, $name);
+            $this->cannotListMorphTo($name);
         }
 
         $related = $into ?? $relation->getRelated()->newQuery();
@@ -200,6 +200,19 @@ abstract class BaseRelationFilter extends BaseFilter
             'The options of filter "%s" cannot follow %s relation "%s" from the dashboard rows; call ->allOptions() to list every related record.',
             $this->key,
             class_basename($relation),
+            $name
+        ));
+    }
+
+    /**
+     * A MorphTo has no related model of its own: getRelated() is the model declaring it, so not even
+     * ->allOptions() would list the right records
+     */
+    protected function cannotListMorphTo(string $name): never
+    {
+        throw new LogicException(sprintf(
+            'Filter "%s" cannot list options for MorphTo relation "%s": its related model changes from row to row, so RelationFilter does not support it, with or without ->allOptions().',
+            $this->key,
             $name
         ));
     }

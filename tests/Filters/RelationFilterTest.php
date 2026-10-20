@@ -178,15 +178,26 @@ class RelationFilterTest extends AbstractFilterTestCase
         $this->assertEquals(['Ana', 'Bruno', 'Carla'], $this->names(RelationFilter::create('customer', 'Customer'), $dashboard));
     }
 
-    public function test_a_morph_to_cannot_be_followed_and_asks_for_all_options(): void
+    public function test_a_morph_to_is_refused_without_pointing_to_all_options(): void
     {
-        $dashboard = $this->dashboard(NoteModel::class);
-        $filter    = RelationFilter::create('noteable', 'Noteable');
+        try {
+            RelationFilter::create('noteable', 'Noteable')->extra($this->dashboard(NoteModel::class), $this->makeBiRequest());
+            $this->fail('A MorphTo must not list options');
+        } catch (LogicException $e) {
+            $this->assertStringContainsString('MorphTo', $e->getMessage());
+            $this->assertStringNotContainsString('call ->allOptions()', $e->getMessage());
+        }
+    }
+
+    public function test_all_options_still_refuses_a_morph_to(): void
+    {
+        // the MorphTo's related model is the note itself: the list would be every note, of every tenant
+        $filter = RelationFilter::create('noteable', 'Noteable')->allOptions();
 
         $this->expectException(LogicException::class);
-        $this->expectExceptionMessage('->allOptions()');
+        $this->expectExceptionMessage('MorphTo');
 
-        $filter->extra($dashboard, $this->makeBiRequest());
+        $filter->extra($this->dashboard(NoteModel::class), $this->makeBiRequest());
     }
 
     public function test_the_narrowing_flag_is_not_published_to_the_frontend(): void

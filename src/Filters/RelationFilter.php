@@ -4,6 +4,7 @@ namespace Luminix\Bi\Filters;
 
 use Luminix\Bi\Dashboard;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Luminix\Bi\Services\QueryService;
 use Luminix\Bi\Support\BiRequest;
 
@@ -53,7 +54,13 @@ class RelationFilter extends BaseRelationFilter
 
     public function extra(Dashboard $dashboard, BiRequest $request): array
     {
-        $related = $this->getRelatedModel($dashboard);
+        $relation = $this->getRelation($dashboard);
+
+        if ($relation instanceof MorphTo) {
+            $this->cannotListMorphTo($this->relation);
+        }
+
+        $related = $relation->getRelated();
 
         $query = QueryService::scoped(QueryService::create($related), $this->scope->bindTo($this, $this));
 
