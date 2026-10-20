@@ -49,7 +49,9 @@ lists every related record instead of only the ones the dashboard's rows reach (
 `apply()` qualifies the primary key by the related table, or by the alias `whereHas` gives a
 self-relation, so relations that join a table (`HasManyThrough`, `HasOneThrough`, `BelongsToMany`,
 `MorphToMany`) work even when that table has its own `id`. The columns a `->scope()` uses are not
-qualified: on a joined relation, name the table in them when the other table shares the column.
+qualified: on a joined relation, write them as `$builder->qualifyColumn('col')` when the other table
+shares the column. It yields the alias inside `whereHas` and the table in the option list, where a
+hand-written table name points at the outer row in a self-relation.
 
 ## Option lists
 

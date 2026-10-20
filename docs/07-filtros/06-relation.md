@@ -38,7 +38,7 @@ WHERE EXISTS (
 )
 ```
 
-A chave do `IN` é qualificada pela tabela do modelo relacionado, ou pelo alias que o `whereHas` dá a uma auto-relação. Por isso as relações que fazem join (`HasManyThrough`, `HasOneThrough`, `BelongsToMany` e `MorphToMany`) funcionam mesmo quando a tabela intermediária ou o pivot tem um `id` próprio. As colunas usadas dentro do `->scope()` não ganham essa qualificação: numa relação com join, escreva a tabela nelas quando a outra tabela tiver uma coluna de mesmo nome.
+A chave do `IN` é qualificada pela tabela do modelo relacionado, ou pelo alias que o `whereHas` dá a uma auto-relação. Por isso as relações que fazem join (`HasManyThrough`, `HasOneThrough`, `BelongsToMany` e `MorphToMany`) funcionam mesmo quando a tabela intermediária ou o pivot tem um `id` próprio. As colunas usadas dentro do `->scope()` não ganham essa qualificação: numa relação com join, qualifique-as com `$builder->qualifyColumn('coluna')` quando a outra tabela tiver uma coluna de mesmo nome. Escrever o nome da tabela à mão erra numa auto-relação, onde o `whereHas` troca a tabela pelo alias; o `qualifyColumn()` devolve o alias no `whereHas` e a tabela nas opções.
 
 ## Relações Aninhadas
 
