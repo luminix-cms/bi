@@ -73,11 +73,15 @@ Only two filters answer the filter endpoint with anything:
   widen the list past the restriction. `->allOptions()` drops the restriction to the dashboard's rows
   and keeps those two. Widget `->scope()`s and the other filters are not applied, so the list covers
   the dashboard's rows, not one widget's
-  - the path may be dotted and cross `BelongsTo`, `HasOne`, `HasMany`, `BelongsToMany` and
-    `MorphOne`/`MorphMany` relations. `HasManyThrough`, `HasOneThrough`, `MorphTo` and `MorphToMany`
-    can't be followed: `extra()` throws a `LogicException` naming `->allOptions()`
-  - models the path crosses contribute only their global scopes (`SoftDeletes`): their `allowed()`
-    is not applied, as in `apply()`'s `whereHas`, and constraints declared inside the relation method
+  - the path may be dotted and cross `BelongsTo`, `HasOne`, `HasMany`, `BelongsToMany`,
+    `MorphOne`/`MorphMany`, `MorphToMany` (`morphedByMany` too), `HasOneThrough` and
+    `HasManyThrough` relations. Any other relation class, such as one from a package, makes
+    `extra()` throw a `LogicException` naming `->allOptions()`, which lists that relation's records
+  - a `MorphTo` is not supported: its related model is the one declaring it, so `extra()` throws a
+    `LogicException` even with `->allOptions()`
+  - models the path crosses contribute only their global scopes (`SoftDeletes`), and the
+    intermediate model of a `*Through` relation only its `SoftDeletes`: their `allowed()` is not
+    applied, as in `apply()`'s `whereHas`, and constraints declared inside the relation method
     (`->where()`, `wherePivot()`) are ignored, so such a relation can offer a record that matches no
     row
   - the restriction is an `IN (subquery)` over the dashboard's rows; on a large table whose foreign

@@ -95,7 +95,7 @@ Num dashboard recortado por tenant, um `RelationFilter` de `customer` lista só 
 
 O `->scope()` de cada widget e os demais filtros não entram, então a lista cobre as linhas do dashboard, não as de um widget específico.
 
-O recorte vale também para relações aninhadas (`'company.sector'`) e para `HasOne`, `HasMany`, `BelongsToMany` e `MorphOne`/`MorphMany`. Nos modelos que o caminho atravessa, só valem os escopos globais do próprio modelo, como `SoftDeletes`. O `allowed()` desses modelos fica de fora, e o `whereHas` do filtro também não o aplica, então a lista bate com o que o `apply()` encontra.
+O recorte vale também para relações aninhadas (`'company.sector'`) e para `HasOne`, `HasMany`, `BelongsToMany`, `MorphOne`/`MorphMany`, `MorphToMany` (inclusive `morphedByMany`), `HasOneThrough` e `HasManyThrough`. Nos modelos que o caminho atravessa, só valem os escopos globais do próprio modelo, como `SoftDeletes`; no modelo intermediário de um `HasManyThrough`/`HasOneThrough`, só o `SoftDeletes`. O `allowed()` desses modelos fica de fora, e o `whereHas` do filtro também não o aplica, então a lista bate com o que o `apply()` encontra.
 
 As restrições declaradas no método da relação (`hasMany(...)->where('active', true)`, `wherePivot()`) também ficam de fora do recorte, ao contrário do `whereHas`, que as aplica. Uma relação assim pode oferecer um registro que, ao ser selecionado, não devolve linhas.
 
@@ -112,7 +112,9 @@ RelationFilter::create('category', 'Category')
 
 Use-o também quando a query do recorte ficar cara. Em tabelas grandes, o recorte faz um `IN (subquery)` sobre as linhas do dashboard, e uma chave estrangeira sem índice pesa.
 
-Relações `HasManyThrough`, `HasOneThrough`, `MorphTo` e `MorphToMany` não podem ser seguidas a partir das linhas do dashboard. Com elas, `extra()` lança uma `LogicException` que pede `->allOptions()`.
+Uma relação fora das classes listadas acima, como as de pacotes de terceiros, não pode ser seguida a partir das linhas do dashboard. Com ela, `extra()` lança uma `LogicException` que pede `->allOptions()`, e com `->allOptions()` a lista volta a trazer os registros dessa relação.
+
+O `RelationFilter` não suporta `MorphTo`. O modelo relacionado muda de linha para linha, e o Eloquent devolve como relacionado o próprio modelo que declara a relação, então nem `->allOptions()` listaria os registros certos: `extra()` lança uma `LogicException` com ou sem ele.
 
 ## Próximos Passos
 

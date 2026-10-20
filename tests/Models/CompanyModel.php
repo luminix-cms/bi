@@ -23,6 +23,11 @@ class CompanyModel extends Model
         return $this->hasManyThrough(OrderModel::class, CustomerModel::class, 'company_id', 'customer_id');
     }
 
+    public function ordersOfCurrentCustomers()
+    {
+        return $this->hasManyThrough(OrderModel::class, TrashableCustomerModel::class, 'company_id', 'customer_id');
+    }
+
     public function firstOrder()
     {
         return $this->hasOneThrough(OrderModel::class, CustomerModel::class, 'company_id', 'customer_id');
